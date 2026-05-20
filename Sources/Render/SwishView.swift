@@ -150,6 +150,7 @@ struct SwishView: View {
                         RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                             .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                     )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
@@ -166,6 +167,7 @@ struct SwishView: View {
                         RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                             .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                     )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .frame(maxWidth: 160)

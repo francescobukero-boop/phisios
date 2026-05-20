@@ -42,6 +42,7 @@ struct SolutionView: View {
                     .foregroundColor(.arclabMidGrey)
                     .tracking(1.1)
                     .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .light), trigger: closeTapCount)
@@ -201,6 +202,7 @@ struct SolutionView: View {
                     RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                         .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                 )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .heavy), trigger: bottomTapCount)

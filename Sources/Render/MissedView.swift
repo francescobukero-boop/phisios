@@ -117,6 +117,7 @@ struct MissedView: View {
                         RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                             .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                     )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .sensoryFeedback(.impact(weight: .heavy), trigger: false)
@@ -136,6 +137,7 @@ struct MissedView: View {
                             .stroke(Color.arclabBorderGrey.opacity(isSolutionUnlocked ? 1.0 : 0.3),
                                     lineWidth: Sizing.borderWidth)
                     )
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .frame(maxWidth: 160)

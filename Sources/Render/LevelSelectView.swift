@@ -47,6 +47,7 @@ struct LevelSelectView: View {
                     .foregroundColor(.arclabMidGrey)
                     .tracking(1.1)
                     .frame(minHeight: 44, alignment: .leading)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Back to Sport Picker")

@@ -53,6 +53,7 @@ struct IntroView: View {
                         .foregroundColor(.arclabMidGrey)
                         .tracking(1.1)
                         .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Close. Return to home.")
@@ -128,6 +129,7 @@ struct IntroView: View {
                     RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                         .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                 )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(startButtonLabel). Start the scenario.")

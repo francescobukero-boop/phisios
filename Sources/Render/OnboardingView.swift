@@ -80,6 +80,7 @@ struct OnboardingView: View {
                             RoundedRectangle(cornerRadius: Sizing.cornerRadius)
                                 .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                         )
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, Spacing.md)

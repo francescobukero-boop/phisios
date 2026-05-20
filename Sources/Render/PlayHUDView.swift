@@ -54,7 +54,8 @@ private struct CloseChip: View {
                 .font(.sfMono(size: 11))
                 .foregroundColor(.arclabMidGrey)
                 .tracking(1.1)
-                .frame(minWidth: 44, minHeight: 44, alignment: .leading)
+                .frame(minWidth: 60, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: tapCount)

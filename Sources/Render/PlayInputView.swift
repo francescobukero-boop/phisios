@@ -40,6 +40,7 @@ struct PlayInputView: View {
                     value: bindingFor(field: field),
                     isActive: activeFieldForFieldDef(field: field) == activeField
                 )
+                .contentShape(Rectangle())
                 .onTapGesture {
                     activeField = activeFieldForFieldDef(field: field)
                 }
@@ -73,6 +74,7 @@ struct PlayInputView: View {
                         .stroke(Color.arclabBorderGrey.opacity(isShootEnabled ? 1.0 : 0.3),
                                 lineWidth: Sizing.borderWidth)
                 )
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         // Stays enabled in code (not .disabled) so tap-while-invalid fires .warning haptic and stays in VoiceOver tap order.
@@ -246,6 +248,8 @@ private struct NumpadButton: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 40)
                 .overlay(borderOverlay)
+                // Entire 40pt frame tappable, not just the digit glyph.
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .sensoryFeedback(.impact(weight: .light), trigger: tapCount)
