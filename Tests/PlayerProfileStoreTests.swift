@@ -33,7 +33,7 @@ final class PlayerProfileStoreTests: XCTestCase {
         storeA.mutate { profile in
             profile.totalXP = 420
             profile.recomputeRank()
-            profile.completedScenarios[ScenarioID("bb-freethrow-001")] = ScenarioRecord(
+            profile.completedScenarios[ScenarioID("bb-1-baseline")] = ScenarioRecord(
                 bestScore: 95,
                 attemptCounter: 3,
                 hintTiersUsedThisAttempt: [1, 2],
@@ -54,7 +54,7 @@ final class PlayerProfileStoreTests: XCTestCase {
         XCTAssertEqual(storeB.profile.totalXP, 420)
         XCTAssertEqual(storeB.profile.rankRung.rank, .rookie)
         XCTAssertEqual(storeB.profile.rankRung.subTier, .III) // 420 XP at v1 thresholds
-        let record = try XCTUnwrap(storeB.profile.completedScenarios[ScenarioID("bb-freethrow-001")])
+        let record = try XCTUnwrap(storeB.profile.completedScenarios[ScenarioID("bb-1-baseline")])
         XCTAssertEqual(record.bestScore, 95)
         XCTAssertEqual(record.attemptCounter, 3)
         XCTAssertEqual(record.hintTiersUsedThisAttempt, [1, 2])

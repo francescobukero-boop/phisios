@@ -17,7 +17,14 @@ struct LessonView: View {
     let lesson: LessonStub
     let onCompleted: () -> Void
 
-    @State private var cardIndex: Int = 0
+    @State private var cardIndex: Int = {
+        // Diagnostic: jump to a specific card. SIMCTL_CHILD_ARCLAB_LESSON_CARD=4
+        if let raw = ProcessInfo.processInfo.environment["ARCLAB_LESSON_CARD"],
+           let idx = Int(raw) {
+            return max(0, idx - 1)   // 1-indexed input
+        }
+        return 0
+    }()
     @State private var showCoachmark: Bool = false
 
     /// Tracks whether the user has seen the coachmark before, so it only
@@ -109,6 +116,7 @@ struct LessonView: View {
 
             Text(currentCard.headline)
                 .font(.anton(size: 44))
+                .textCase(.uppercase)   // v3 playtest #PT5: Anton is a display face — always all caps.
                 .foregroundColor(.arclabWhite)
                 .lineLimit(4)
                 .minimumScaleFactor(0.65)
@@ -139,7 +147,7 @@ struct LessonView: View {
 
             if isLastCard {
                 Spacer().frame(height: Spacing.xl)
-                PrimaryButton(label: "Practice", action: handleComplete)
+                PrimaryButton(label: "Begin", action: handleComplete)
             }
 
             Spacer()

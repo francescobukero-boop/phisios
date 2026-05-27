@@ -1,0 +1,329 @@
+{
+  "$comment": "v3 Level Type B seed: FLAT RELEASE.. v derived for given θ=40°.",
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-b-flat",
+  "meta": {
+    "title": "FLAT RELEASE.",
+    "subtitle": "CH 1 — LEVEL B · FLAT",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": [
+      "arc",
+      "find-v",
+      "level-b"
+    ],
+    "authorIntent": "v3 Level Type B seed. d=4.6, h_r=2.0, θ=40°; v ≈ 7.93. MEDIUM bucket.",
+    "levelType": "B_FIND_V",
+    "chapterId": "bb-ch1-arc",
+    "difficultyBucket": "MEDIUM"
+  },
+  "unknowns": [
+    "v"
+  ],
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find a speed v that lands the ball through the hoop. Angle is given.",
+    "variables": [
+      {
+        "symbol": "d",
+        "value": 4.6,
+        "unit": "m",
+        "label": "DIST"
+      },
+      {
+        "symbol": "h_h",
+        "value": 3.05,
+        "unit": "m",
+        "label": "HOOP"
+      },
+      {
+        "symbol": "h_r",
+        "value": 2.0,
+        "unit": "m",
+        "label": "REL H"
+      },
+      {
+        "symbol": "theta",
+        "value": 40.0,
+        "unit": "°",
+        "label": "ANGLE"
+      },
+      {
+        "symbol": "g",
+        "value": 9.8,
+        "unit": "m/s²",
+        "label": "G"
+      }
+    ]
+  },
+  "input": {
+    "mode": "NUMPAD_SINGLE_V",
+    "fields": [
+      {
+        "name": "v",
+        "label": "SPEED V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [
+        0.0,
+        2.0
+      ],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [
+          4.6,
+          3.05
+        ],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [
+            4.779999999999999,
+            3.05
+          ],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 6.1,
+        "yMax": 6.5
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Short. Angle is fixed — push the speed.",
+          "2": "Still short. More speed.",
+          "3+": "Short again. Speed below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front rim. A touch more speed.",
+          "2": "Still front rim. Push the speed up.",
+          "3+": "Front rim again. More velocity."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back rim. Too much speed.",
+          "2": "Still back rim. Cut the speed.",
+          "3+": "Back rim again. Less velocity."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Overshot. The speed sent it past.",
+          "2": "Still overshooting. Cut the speed.",
+          "3+": "Far overshoot. Speed well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. Check the speed.",
+          "2": "Air ball again. Aim through the hoop.",
+          "3+": "Still air ball. Check the speed."
+        }
+      }
+    ],
+    "ghostArc": {
+      "source": "authored",
+      "answer": {
+        "theta": 40.0,
+        "v": 7.93
+      },
+      "description": "θ=40° with v=7.93 m/s lands the ball through the hoop."
+    }
+  },
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Angle is given. The speed has to do the work."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, one unknown (v):\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nReaches the rim when x = d and y = h_h. θ is fixed."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. With θ=40°, d=4.6, h_r=2.0, h_h=3.05, solve for v. Answer is near 7.93."
+    }
+  ],
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 4.6, h_h = 3.05, h_r = 2.0, θ = 40°, g = 9.8.",
+      "t = d / (v·cos θ).",
+      "Solve y(t) = h_h for v → v ≈ 7.93 m/s."
+    ]
+  },
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        {
+          "id": "bb_player_shoot_motion",
+          "duration": 0.35,
+          "trigger": "submit"
+        },
+        {
+          "id": "bb_ball_in_flight",
+          "driver": "simulation"
+        }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH": "bb_swish_clean_glow",
+          "GLASS": "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+  "voice": {
+    "intro": {
+      "headline": "FLAT RELEASE.",
+      "subhead": "Low angle from the elbow. Pick the speed."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH": "FOUND THE SPEED",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "CAUGHT THE RIM"
+      },
+      "flavorCaption": {
+        "SWISH": "CLEAN — NO RIM",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "ROLLED IN"
+      },
+      "subheadByFlavor": {
+        "SWISH": "Clean shot. The speed did it.",
+        "GLASS": "Used the backboard. Smart.",
+        "RIM_DROP": "Lucky bounce. The speed was close."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "MISSED.",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front rim. A touch more speed.",
+        "BACK_RIM": "Back rim. Ease the speed down.",
+        "SHORT": "Short. Angle is fixed — push the speed.",
+        "OVERSHOOT": "Overshot. Cut the speed.",
+        "AIRBALL": "Air ball. Check the speed."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: v near 7.93.",
+        "BACK_RIM": "Geometry: v near 7.93.",
+        "SHORT": "Geometry: v near 7.93.",
+        "OVERSHOOT": "Geometry: v near 7.93.",
+        "AIRBALL": "Geometry: v near 7.93."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+  "smokeTest": {
+    "answer": {
+      "theta": 40.0,
+      "v": 7.93
+    },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

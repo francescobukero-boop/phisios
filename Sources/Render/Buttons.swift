@@ -46,8 +46,10 @@ struct SecondaryButton: View {
     let label: String
     let action: () -> Void
 
+    @State private var tapCount: Int = 0
+
     var body: some View {
-        Button(action: action) {
+        Button(action: { tapCount += 1; action() }) {
             Text(label.uppercased())
                 .font(.sfMono(size: 16, weight: .medium))
                 .foregroundColor(.arclabWhite)
@@ -61,6 +63,9 @@ struct SecondaryButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // Medium weight — softer than PrimaryButton's heavy to match the
+        // secondary visual hierarchy (transparent vs filled).
+        .sensoryFeedback(.impact(weight: .medium), trigger: tapCount)
     }
 }
 

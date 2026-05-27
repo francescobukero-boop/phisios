@@ -19,7 +19,7 @@ struct PlayHUDView: View {
                     Color.clear.frame(width: 1, height: 1)
                 }
                 Spacer()
-                LevelChip(subtitle: scenario.meta.subtitle)
+                LevelChip(meta: scenario.meta)
             }
             .padding(.horizontal, Spacing.md)
 
@@ -33,13 +33,16 @@ struct PlayHUDView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Spacing.md)
 
-            Spacer()
+            Spacer().frame(height: Spacing.sm)
 
             Rectangle()
                 .fill(Color.arclabBorderGrey)
                 .frame(height: 1)
         }
-        .frame(height: 140)
+        // v3 polish: 140pt was the chrome reserve from an earlier draft that
+        // included a sport-mode toggle. With CLOSE + LV chip row + variable
+        // strip the actual content is ~88pt; trimming to 100pt gives the
+        // court ~40pt more vertical headroom without crowding the chrome.
     }
 }
 
@@ -82,9 +85,12 @@ private struct VariableInlineCell: View {
                 Text(formattedValue)
                     .font(.sfMono(size: 14, weight: .medium))
                     .foregroundColor(.arclabWhite)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
                 Text(variable.unit)
                     .font(.sfMono(size: 10))
                     .foregroundColor(.arclabMidGrey)
+                    .lineLimit(1)
             }
         }
     }
@@ -94,12 +100,13 @@ private struct VariableInlineCell: View {
     }
 }
 
-/// "LV 01" chip derived from meta.subtitle by parsing the trailing number.
+/// Top-right chip. v3: derives from meta.levelType when present
+/// ("LV A · FIND θ" etc). Falls back to the v1 "LV 01" subtitle-parser.
 private struct LevelChip: View {
-    let subtitle: String
+    let meta: MetaDefinition
 
     var body: some View {
-        Text(parsedLevelCode)
+        Text(label)
             .font(.sfMono(size: 11))
             .foregroundColor(.arclabWhite)
             .tracking(1.1)
@@ -111,9 +118,19 @@ private struct LevelChip: View {
             )
     }
 
-    /// "FREE THROW — LEVEL 01" → "LV 01"; falls back to the last token.
-    private var parsedLevelCode: String {
-        let components = subtitle.split(separator: " ")
+    private var label: String {
+        // v3 path: derive from explicit levelType.
+        if let lt = meta.levelType {
+            switch lt {
+            case .findTheta: return "LV A · θ"
+            case .findV:     return "LV B · V"
+            case .findD:     return "LV C · D"
+            case .findBoth:  return "LV D · θ+V"
+            case .findG:     return "LV E · G"
+            }
+        }
+        // v1 fallback: "FREE THROW — LEVEL 01" → "LV 01"; else last token.
+        let components = meta.subtitle.split(separator: " ")
         if let last = components.last, components.dropLast().last == "LEVEL" {
             return "LV \(last)"
         }

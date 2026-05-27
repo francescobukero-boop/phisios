@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 2 — THE SPIN, scenario 1 (dead release). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Schema mirrors bb-1-baseline.json. NOTE: geometry is intentionally identical to bb-1-baseline (d=4.6, h_r=2.0, θ=52°, v=7.52) — the chapter shift is narrative (the rim now doesn't forgive), not numerical. Spin/no-spin simulated via lesson copy + visual treatment, not engine physics (engine has no Magnus model).",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-2-no-spin",
+
+  "meta": {
+    "title": "NO ROTATION.",
+    "subtitle": "CH 2 — THE SPIN, DEAD RELEASE",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["spin", "projectile", "no-wind", "free-throw"],
+    "authorIntent": "The dead-spin release. Identical geometry to bb-1-baseline so the user re-enters answers from memory: d=4.6, h_r=2.0, θ=52°, v=7.52 m/s. Verification: t = 4.6 / (7.52·cos 52°) = 0.992 s; y(0.992) = 2.0 + 7.52·sin(52°)·0.992 − ½·9.8·0.992² = 3.051 m — matches h_h (err 0.001 m). Pedagogical purpose: make the absence of spin visible. The reveal beat ties the math the user just solved to 'in real basketball, this shot needs backspin to forgive a 5 cm miss — without it, this margin disappears.' Lesson copy carries the chapter's lens."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 4.6,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.0,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.0],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [4.6, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [4.78, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 6.0,
+        "yMax": 6.0
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. A flat dead ball dies in front.",
+          "2": "Still short. Push the arc up.",
+          "3+": "Short again. Velocity below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. Dead release, no give.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Nothing to soften the bounce.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. Without rotation, the iron sent it away.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. Dead release, dead arc.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 52.0, "v": 7.52 },
+      "description": "Same answer as the baseline free throw — by design. The chapter's twist isn't the math, it's the framing: a dead release with no backspin. Reveal copy: 'In real basketball, that 5 cm of margin disappears without spin.'"
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Same equations as Ch 1. Spin isn't in the math — it's in the rim's reaction. Solve the trajectory."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nBall at the rim when x = d and y = h_h."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Try θ around 52°. Same answer as the baseline — see why the reveal says 'no margin'?"
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 4.6, h_h = 3.05, h_r = 2.0, g = 9.8.",
+      "At θ = 52°: t = d / (v·cos(52°)).",
+      "Solve y(t) = h_h for v → v ≈ 7.52 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "NO ROTATION.",
+      "subhead": "The release is dead. The rim won't forgive that."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "STRAIGHT THROUGH",
+        "GLASS":    "BANKED IT IN",
+        "RIM_DROP": "STAYED ON IT"
+      },
+      "flavorCaption": {
+        "SWISH":    "NO SPIN, NO RIM",
+        "GLASS":    "BOARD BAILED IT OUT",
+        "RIM_DROP": "GENEROUS IRON"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Threaded the eye. No rim to argue with.",
+        "GLASS":    "Square caught it before the iron could.",
+        "RIM_DROP": "Iron played fair. The shot survived."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "RIM IRON",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. Dead release, no give.",
+        "BACK_RIM":  "Back iron. Nothing to soften the bounce.",
+        "SHORT":     "Came up short. A flat dead ball dies in front.",
+        "OVERSHOOT": "Long. Without rotation, the iron sent it away.",
+        "AIRBALL":   "Air ball. Dead release, dead arc."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 52°, push v near 7.5.",
+        "BACK_RIM":  "Geometry: θ near 52°, cut v by ~0.5.",
+        "SHORT":     "Geometry: θ near 52°, push v near 7.5.",
+        "OVERSHOOT": "Geometry: θ near 52°, cut v by ~1.0.",
+        "AIRBALL":   "Geometry: θ near 52°, v near 7.5."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 52.0, "v": 7.52 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

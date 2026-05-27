@@ -11,13 +11,17 @@ enum SportsIQTier: String, CaseIterable, Sendable {
     case architect         = "ARCHITECT"
 
     /// Minimum IQ to earn this tier. Inclusive.
+    /// Thresholds calibrated per BASKETBALL_JOURNEY v2 §3 so the first
+    /// tier-up lands inside Ch 1 (engagement) and full basketball completion
+    /// lands at STUDENT OF THE GAME. ARCHITECT is reserved for multi-sport
+    /// completion (v1.5+).
     var threshold: Int {
         switch self {
         case .watcher:           return 0
-        case .student:           return 50
-        case .scholar:           return 200
-        case .studentOfTheGame:  return 500
-        case .architect:         return 1000
+        case .student:           return 25
+        case .scholar:           return 100
+        case .studentOfTheGame:  return 300
+        case .architect:         return 700
         }
     }
 

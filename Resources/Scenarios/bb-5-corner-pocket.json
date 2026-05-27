@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 5 — THE CORNER, anchor scenario (Splash Bros archetype). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Per BASKETBALL_JOURNEY v2 §7, voice uses location + era ('SPLASH FROM THE WEAKSIDE CORNER.'), never the athlete's name.",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-5-corner-pocket",
+
+  "meta": {
+    "title": "SPLASH FROM THE WEAKSIDE CORNER.",
+    "subtitle": "CH 5 — THE CORNER, ANCHOR",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 3,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["corner", "projectile", "no-wind", "three-ball", "anchor"],
+    "authorIntent": "Deep weakside corner three. d=7.0 (≈23 ft), h_r=2.5 (high release off a screen), h_h=3.05. Textbook answer θ=55°, v=8.79 m/s. Verification: t = 7.0 / (8.79·cos 55°) = 1.388 s; y(1.388) = 2.5 + 8.79·sin(55°)·1.388 − ½·9.8·1.388² = 3.052 m — matches h_h (err 0.002 m). Cultural framing is location + era ('SPLASH FROM THE WEAKSIDE CORNER.'), not the athlete — per BASKETBALL_JOURNEY v2 §7. Chapter payoff: the line is no longer the lesson, it's the asset."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 7.0,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.5,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.5],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [7.0, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [7.18, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 8.5,
+        "yMax": 7.0
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. Corner legs gave out on the catch.",
+          "2": "Still short. Push the velocity.",
+          "3+": "Short again. Power well below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. The catch-and-shoot was rushed flat.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Too much pace on the catch.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. The release outran the geometry.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. The line of the shot drifted off the rim.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 55.0, "v": 8.79 },
+      "description": "Textbook answer θ=55°, v=8.79 m/s. The corner three the dynasty was built on — clean arc, high release, net only."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Deep corner, high release. Still projectile."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nd = 7 m, h_r = 2.5 m."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Try θ near 55°. The high release helps; v lands near 8.8."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 7.0, h_h = 3.05, h_r = 2.5, g = 9.8.",
+      "At θ = 55°: t = d / (v·cos(55°)).",
+      "Solve y(t) = h_h for v → v ≈ 8.79 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "SPLASH FROM THE WEAKSIDE CORNER.",
+      "subhead": "Left corner. Full-speed catch. The shortest three in the game."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "SPLASH",
+        "GLASS":    "SQUARE THREE",
+        "RIM_DROP": "BOUNCED HOME"
+      },
+      "flavorCaption": {
+        "SWISH":    "WEAKSIDE CORNER, NET",
+        "GLASS":    "GLASS THREE FROM 22",
+        "RIM_DROP": "CORNER THREE, RIM IN"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Net only. Corner pocket.",
+        "GLASS":    "Caught the square for three.",
+        "RIM_DROP": "Iron held a three. Generous from the corner."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "OFF THE CORNER",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. The catch-and-shoot was rushed flat.",
+        "BACK_RIM":  "Back iron. Too much pace on the catch.",
+        "SHORT":     "Came up short. Corner legs gave out on the catch.",
+        "OVERSHOOT": "Long. The release outran the geometry.",
+        "AIRBALL":   "Air ball. The line of the shot drifted off the rim."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 55°, push v near 8.8.",
+        "BACK_RIM":  "Geometry: θ near 55°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 55°, push v near 8.8.",
+        "OVERSHOOT": "Geometry: θ near 55°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 55°, v near 8.8."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 55.0, "v": 8.79 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

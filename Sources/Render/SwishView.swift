@@ -69,10 +69,14 @@ struct SwishView: View {
     }
 
     private var verb: some View {
+        // v3 §3 polish: clamp base font to fit longer headlines like
+        // "FOUND THE ANGLE" / "FOUND THE SPEED" without truncation.
+        // The minimumScaleFactor still shrinks for "FOUND THE SPEED" but
+        // shorter words ("SWISH", "DAGGER") stay at full 88pt.
         Text(scenario.voice.success.headlineByFlavor[flavor] ?? flavor)
-            .font(.anton(size: 128))
+            .font(.anton(size: 88))
             .foregroundColor(.arclabWhite)
-            .minimumScaleFactor(0.625)
+            .minimumScaleFactor(0.5)
             .lineLimit(1)
             .dynamicTypeSize(.large ... .accessibility1)
             .scaleEffect(verbScale, anchor: .leading)
@@ -90,7 +94,7 @@ struct SwishView: View {
             statCell(value: "\(Int((theta * thetaCount).rounded()))°",
                      label: scenario.voice.success.statLabels.theta)
             divider
-            statCell(value: String(format: "%.2f", velocity * velocityCount),
+            statCell(value: String(format: "%.1f m/s", velocity * velocityCount),
                      label: scenario.voice.success.statLabels.v)
             divider
             statCell(value: "+\(Int((Double(score) * scoreCount).rounded()))",

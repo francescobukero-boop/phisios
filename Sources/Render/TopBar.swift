@@ -11,6 +11,7 @@ struct TopBar: View {
     let leading: Leading
     let trailing: Trailing?
 
+
     enum Leading {
         /// Static identity word, e.g. "ARCLAB". Not tappable.
         case word(String)

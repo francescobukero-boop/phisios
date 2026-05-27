@@ -7,13 +7,43 @@ import Foundation
 /// scenarios become free-play after unlock. Each sport gets the number of
 /// chapters its physics deserves (basketball is estimated 5–7).
 struct Chapter: Identifiable, Hashable, Sendable {
-    let id: String          // e.g. "bb-ch1-projectile"
+    let id: String          // e.g. "bb-ch1-arc"
     let sport: Sport
     let index: Int          // 1-based display order within sport
     let title: String       // user-visible chapter title
     let subtitle: String    // single-sentence framing
     let lesson: LessonStub
-    let scenarioIDs: [String]  // ordered scenarios in this chapter; map to JSON ids
+    let scenarioIDs: [String]  // ordered scenarios; v2 convention: index 0 = easy,
+                               // 1 = harder, 2 = famous-moment anchor
+    /// The one-line poster shown when the user earns MASTERY for this chapter.
+    /// Per BASKETBALL_JOURNEY v2 §4 — "Flat shots will look flat to you now,"
+    /// "The square is a target. You'll never un-see it," etc.
+    let lensReveal: String
+
+    /// v3 §3.7: per-level-type seed pools. Empty dict for chapters that
+    /// haven't been migrated to v3 yet — those fall back to `scenarioIDs`
+    /// as a Level D-only pool. Ch 1 has all 4 level types populated; Chs 2-5
+    /// ship in v3 with Level D only (their lens-specific level types arrive
+    /// when the simulation gains spin/fade/bank physics).
+    let levelTypeSeeds: [LevelTypeID: [String]]
+
+    /// Convenience: the seed pool for a given level type, with sensible
+    /// fallback to `scenarioIDs` for Level D when not explicitly populated.
+    func seeds(for levelType: LevelTypeID) -> [String] {
+        if let pool = levelTypeSeeds[levelType] { return pool }
+        if levelType == .findBoth { return scenarioIDs }   // legacy v2 fallback
+        return []
+    }
+
+    /// v3: true iff this chapter has all 4 Earth level types populated with
+    /// seeds. Ch 2-5 currently ship empty `levelTypeSeeds` (locked) per
+    /// GAME_v3_LOCKED.md §3.7 — they unlock when the simulator gains the
+    /// chapter's physics (spin / fade / bank).
+    var isShippableInV3: Bool {
+        LevelTypeID.earthChapterTypes.allSatisfy { lt in
+            !seeds(for: lt).isEmpty
+        }
+    }
 }
 
 // LessonStub is a typealias to LessonContent — see LessonContent.swift.

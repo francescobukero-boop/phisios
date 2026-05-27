@@ -28,17 +28,27 @@ struct PlayerProfile: Codable, Sendable, Equatable {
     /// Stored as the start-of-day Date in the user's local calendar.
     var lastPlayedDate: Date?
 
-    /// True until the first START tap on the first scenario; gates IntroView's first-run choreography.
+    /// True until the first START tap on the first scenario. v1-era state
+    /// for the dead IntroView's first-run choreography; persisted via the
+    /// migration chain so existing player profiles keep loading. Safe to
+    /// remove once a v6 migration drops it.
     var firstRun: Bool
 
-    /// True until the first scenario is played; drives INTRO's theatrical reveal.
+    /// True until the first scenario is played. v1-era state for IntroView's
+    /// theatrical reveal. Same persistence-only status as `firstRun`.
     var firstEverScenario: Bool
 
-    /// Counter 0…3; increments each INTRO appearance that showed the briefing-hint dot.
+    /// Counter 0…3 from v1's INTRO briefing-hint dot. Persistence-only.
     var firstThreeScenariosBriefingHintSeen: Int
 
-    /// Drives RootView first-launch routing (false → OnboardingView, true → SportPickerView).
+    /// Gates first-launch routing in PostSplashRouterView (false →
+    /// V3OnboardingView, true → HomeView).
     var hasSeenOnboarding: Bool
+
+    /// v3 mastery model — per-level-type rolling-window progress.
+    /// Keyed by `LevelTypeMastery.levelTypeId` (e.g. "ch1_arc.A_FIND_THETA").
+    /// Empty for legacy v4 profiles; defaults via migration.
+    var levelTypeMasteries: [String: LevelTypeMastery]
 
     static func newProfile() -> PlayerProfile {
         PlayerProfile(
@@ -52,11 +62,12 @@ struct PlayerProfile: Codable, Sendable, Equatable {
             firstRun: true,
             firstEverScenario: true,
             firstThreeScenariosBriefingHintSeen: 0,
-            hasSeenOnboarding: false
+            hasSeenOnboarding: false,
+            levelTypeMasteries: [:]
         )
     }
 
-    static let currentSchemaVersion = 4
+    static let currentSchemaVersion = 5
 
     /// Record a play happening today. Bumps `currentStreak` if it continues
     /// the streak (last played yesterday); resets to 1 if a day was missed;

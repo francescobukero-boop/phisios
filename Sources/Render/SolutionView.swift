@@ -17,10 +17,6 @@ struct SolutionView: View {
 
                 Spacer().frame(height: Spacing.lg)
 
-                canonicalArcZone
-
-                Spacer().frame(height: Spacing.lg)
-
                 solutionZone
                     .padding(.horizontal, Spacing.md)
 
@@ -32,6 +28,7 @@ struct SolutionView: View {
             }
         }
         .statusBarHidden(true)
+        .swipeBackToDismiss(onDismiss: handleClose)
     }
 
     private var topZone: some View {
@@ -84,14 +81,6 @@ struct SolutionView: View {
         onClose()
     }
 
-    private var canonicalArcZone: some View {
-        Text("THE ANSWER")
-            .font(.sfMono(size: 11))
-            .foregroundColor(.arclabMidGrey)
-            .tracking(2.0)
-            .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
     private var solutionZone: some View {
         VStack(alignment: .leading, spacing: Spacing.xl) {
             answerStrip
@@ -116,10 +105,10 @@ struct SolutionView: View {
             HStack(spacing: 0) {
                 statCell(value: "\(Int(canonicalTheta.rounded()))°", label: "ANGLE")
                 divider
-                statCell(value: String(format: "%.2f", canonicalVelocity), label: "m/s")
+                statCell(value: String(format: "%.1f m/s", canonicalVelocity), label: "SPEED")
                 divider
-                // "WOULD EARN" instead of "WOULD HAVE EARNED" — the latter truncates at iPhone 17 width.
-                statCell(value: "+\(wouldHaveEarned)", label: "WOULD EARN")
+                // v3 #PT7: declarative label, not conditional "WOULD EARN".
+                statCell(value: "+\(wouldHaveEarned)", label: "MAX PTS")
             }
             .frame(height: 64)
         }

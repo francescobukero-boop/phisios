@@ -93,12 +93,10 @@ final class PlayerProfileStore {
             } catch {
                 throw PersistenceError.decodeFailed(reason: String(describing: error))
             }
-        case 3:
-            // v3 → v4: add currentStreak (0) and lastPlayedDate (nil).
+        case 4:
+            // v4 → v5: add levelTypeMasteries (empty dict). v3 mastery model.
             var migrated = raw
-            migrated["currentStreak"] = 0
-            // lastPlayedDate stays nil (omit key — Codable handles absent
-            // optional)
+            migrated["levelTypeMasteries"] = [:] as [String: Any]
             migrated["profileSchemaVersion"] = PlayerProfile.currentSchemaVersion
             let migratedData = try JSONSerialization.data(withJSONObject: migrated, options: [.sortedKeys])
             do {
@@ -106,13 +104,28 @@ final class PlayerProfileStore {
                 decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(PlayerProfile.self, from: migratedData)
             } catch {
-                throw PersistenceError.decodeFailed(reason: "v3→v4 migration: \(error)")
+                throw PersistenceError.decodeFailed(reason: "v4→v5 migration: \(error)")
+            }
+        case 3:
+            // v3 → v5: add currentStreak (0), lastPlayedDate (nil), levelTypeMasteries (empty).
+            var migrated = raw
+            migrated["currentStreak"] = 0
+            migrated["levelTypeMasteries"] = [:] as [String: Any]
+            migrated["profileSchemaVersion"] = PlayerProfile.currentSchemaVersion
+            let migratedData = try JSONSerialization.data(withJSONObject: migrated, options: [.sortedKeys])
+            do {
+                let decoder = JSONDecoder()
+                decoder.dateDecodingStrategy = .iso8601
+                return try decoder.decode(PlayerProfile.self, from: migratedData)
+            } catch {
+                throw PersistenceError.decodeFailed(reason: "v3→v5 migration: \(error)")
             }
         case 2:
-            // v2 → v4: add completedLessons + currentStreak + nil lastPlayedDate.
+            // v2 → v5: add completedLessons + currentStreak + levelTypeMasteries.
             var migrated = raw
             migrated["completedLessons"] = [] as [String]
             migrated["currentStreak"] = 0
+            migrated["levelTypeMasteries"] = [:] as [String: Any]
             migrated["profileSchemaVersion"] = PlayerProfile.currentSchemaVersion
             let migratedData = try JSONSerialization.data(withJSONObject: migrated, options: [.sortedKeys])
             do {
@@ -120,14 +133,15 @@ final class PlayerProfileStore {
                 decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(PlayerProfile.self, from: migratedData)
             } catch {
-                throw PersistenceError.decodeFailed(reason: "v2→v4 migration: \(error)")
+                throw PersistenceError.decodeFailed(reason: "v2→v5 migration: \(error)")
             }
         case 1:
-            // v1 → v4: hasSeenOnboarding=true, completedLessons=[], streak=0.
+            // v1 → v5: hasSeenOnboarding=true, completedLessons=[], streak=0, masteries={}.
             var migrated = raw
             migrated["hasSeenOnboarding"] = true
             migrated["completedLessons"] = [] as [String]
             migrated["currentStreak"] = 0
+            migrated["levelTypeMasteries"] = [:] as [String: Any]
             migrated["profileSchemaVersion"] = PlayerProfile.currentSchemaVersion
             let migratedData = try JSONSerialization.data(withJSONObject: migrated, options: [.sortedKeys])
             do {
@@ -135,7 +149,7 @@ final class PlayerProfileStore {
                 decoder.dateDecodingStrategy = .iso8601
                 return try decoder.decode(PlayerProfile.self, from: migratedData)
             } catch {
-                throw PersistenceError.decodeFailed(reason: "v1→v4 migration: \(error)")
+                throw PersistenceError.decodeFailed(reason: "v1→v5 migration: \(error)")
             }
         case 0:
             throw PersistenceError.profileTooOld(found: version, current: PlayerProfile.currentSchemaVersion)

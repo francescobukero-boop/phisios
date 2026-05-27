@@ -41,8 +41,11 @@ struct HomeView: View {
 
             continueRow
 
+            // Bumped from 0.5 → 1.0 opacity per audit rec — at 50% the
+            // hairline barely separated the two near-identical rows and the
+            // user couldn't tell CONTINUE from PROFILE at a glance.
             Rectangle()
-                .fill(Color.arclabBorderGrey.opacity(0.5))
+                .fill(Color.arclabBorderGrey)
                 .frame(height: 1)
 
             profileRow
@@ -62,12 +65,31 @@ struct HomeView: View {
 
     // MARK: - Hero card
 
+    /// Today's daily pick. Same player + same calendar day → same scenario.
+    /// Recomputed on every body evaluation but DailyScenarioPicker is pure
+    /// and cheap (~ O(chapters × levelTypes)) so this is fine.
+    private var dailyPick: DailyScenarioPicker.Pick {
+        DailyScenarioPicker.pick(
+            for: profile.profile,
+            chapters: BasketballCurriculum.chapters
+        )
+    }
+
     private var heroCard: some View {
-        ScenarioPreviewCard(
-            scenarioId: "bb-01-freethrow",
+        // Derive the card's headline + subhead from the picked scenario's
+        // voice.intro block — keeps card honest about what the tap delivers.
+        // Falls back to generic free-throw copy if the load fails, since the
+        // card has to render something and a silent break would be worse.
+        let pick = dailyPick
+        let scenario = try? ScenarioLoader.load(ScenarioID(pick.scenarioId))
+        let bigTitle = scenario?.voice.intro.headline ?? "THE FREE THROW."
+        let subhead = scenario?.voice.intro.subhead
+            ?? "Standard release. Solve the angle and speed."
+        return ScenarioPreviewCard(
+            scenarioId: pick.scenarioId,
             titleAbove: "TODAY",
-            bigTitle: "THE FLAT-ARC CORNER THREE.",
-            subhead: "A guard releasing from the corner. Fast release. Low arc.",
+            bigTitle: bigTitle,
+            subhead: subhead,
             actionLabel: "CALL IT",
             onTap: onPickDailyScenario
         )
@@ -83,7 +105,7 @@ struct HomeView: View {
                         .font(.sfMono(size: 10))
                         .foregroundColor(.arclabMidGrey)
                         .tracking(2.0)
-                    Text("Basketball · Ch 1 · The arc")
+                    Text(continueLabel)
                         .font(.barlowCondensed(size: 16))
                         .foregroundColor(.arclabWhite)
                 }
@@ -97,6 +119,21 @@ struct HomeView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    /// Furthest-along chapter the player can keep working on. v3 ship only
+    /// has Ch 1 actually shippable (Ch 2-5 carry empty seed pools), so we
+    /// surface the first chapter that's both shippable AND not yet fully
+    /// mastered. Falls back to the last shippable chapter once everything
+    /// is cleared. Derived from curriculum so it can't drift from spec.
+    private var continueLabel: String {
+        let chapters = BasketballCurriculum.chapters
+        let target: Chapter = chapters.first { chapter in
+            guard chapter.isShippableInV3 else { return false }
+            let key = MasteryService.key(chapterId: chapter.id, levelType: .findBoth)
+            return profile.profile.levelTypeMasteries[key]?.status != .mastered
+        } ?? chapters.last(where: { $0.isShippableInV3 }) ?? chapters[0]
+        return "Basketball · Ch \(target.index) · \(target.title)"
     }
 
     private var profileRow: some View {

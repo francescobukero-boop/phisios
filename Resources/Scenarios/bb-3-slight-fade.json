@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 3 — THE FADE, scenario 2 (slight backward drift). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Schema mirrors bb-1-baseline.json. Fade represented by increasing effective distance vs the standstill control (5.0 → 5.5 m). Lesson copy carries the body-momentum concept.",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-3-slight-fade",
+
+  "meta": {
+    "title": "STEPPED BACK.",
+    "subtitle": "CH 3 — THE FADE, SMALL DRIFT",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 2,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["fade", "projectile", "no-wind", "midrange"],
+    "authorIntent": "A half-meter backward drift from the standstill control. d=5.5, h_r=2.3, h_h=3.05. Textbook answer θ=55°, v=7.96 m/s. Verification: t = 5.5 / (7.96·cos 55°) = 1.205 s; y(1.205) = 2.3 + 7.96·sin(55°)·1.205 − ½·9.8·1.205² = 3.043 m — matches h_h (err 0.007 m). Pedagogical puzzle: a user who naively reuses the standstill answer (55°, 7.63) falls short. The half-meter extra distance demands +0.33 m/s — exactly the chapter's insight: a fade adds distance you didn't think you'd added."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 5.5,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.3,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.3],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [5.5, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [5.68, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 7.0,
+        "yMax": 6.5
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. Fading away costs reach every time.",
+          "2": "Still short. The body's drift needs to be paid for.",
+          "3+": "Short again. Push the velocity."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. The body's drift was never paid for.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Overcorrected for the step-back.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. Too much push to fight a small drift.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. The body went one way, the ball went nowhere.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 55.0, "v": 7.96 },
+      "description": "Textbook answer θ=55°, v=7.96 m/s. Same arc shape as the standstill, +0.33 m/s of velocity — the visible cost of the fade."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "The fade adds distance. The same shot doesn't reach the same place anymore."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nd is bigger than the standstill. Velocity will be too."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Hold θ near 55°; solve for the higher v that the extra distance demands."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 5.5, h_h = 3.05, h_r = 2.3, g = 9.8.",
+      "At θ = 55°: t = d / (v·cos(55°)).",
+      "Solve y(t) = h_h for v → v ≈ 7.96 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "STEPPED BACK.",
+      "subhead": "A small backward step. The ball inherits the drift."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "COMPENSATED",
+        "GLASS":    "FADE OFF THE GLASS",
+        "RIM_DROP": "HUNG ON THE IRON"
+      },
+      "flavorCaption": {
+        "SWISH":    "BODY ANSWERED",
+        "GLASS":    "GLASS SAVED THE FADE",
+        "RIM_DROP": "IRON FORGAVE THE DRIFT"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Arm answered the body. Net.",
+        "GLASS":    "Square absorbed the drift.",
+        "RIM_DROP": "Iron held a fading ball. Generous."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "DRIFTED SHORT",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. The body's drift was never paid for.",
+        "BACK_RIM":  "Back iron. Overcorrected for the step-back.",
+        "SHORT":     "Came up short. Fading away costs reach every time.",
+        "OVERSHOOT": "Long. Too much push to fight a small drift.",
+        "AIRBALL":   "Air ball. The body went one way, the ball went nowhere."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 55°, push v near 8.0.",
+        "BACK_RIM":  "Geometry: θ near 55°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 55°, push v near 8.0.",
+        "OVERSHOOT": "Geometry: θ near 55°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 55°, v near 8.0."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 55.0, "v": 7.96 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

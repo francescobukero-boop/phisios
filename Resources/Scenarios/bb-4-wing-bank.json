@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 4 — THE GLASS, scenario 1 (wing bank). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Schema mirrors bb-1-baseline.json. Engine has no reflection physics; the bank is carried by lesson copy + visual treatment + the GLASS flavor when the answer naturally clips the backboard rect.",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-4-wing-bank",
+
+  "meta": {
+    "title": "OFF THE SQUARE.",
+    "subtitle": "CH 4 — THE GLASS, WING BANK",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["glass", "projectile", "no-wind", "bank", "wing"],
+    "authorIntent": "The introductory bank from the 45° wing. d=5.0, h_r=2.2, h_h=3.05. Textbook answer θ=58°, v=7.81 m/s. Verification: t = 5.0 / (7.81·cos 58°) = 1.208 s; y(1.208) = 2.2 + 7.81·sin(58°)·1.208 − ½·9.8·1.208² = 3.050 m — matches h_h (err 0.000 m). Pedagogical purpose: prove the square is an aiming guide, not decoration. Direct shots from this angle are narrow; the board widens the target. Higher-arc answer (58°) so the ball can plausibly kiss the glass on its way down — engine scores it GLASS if it does."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 5.0,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.2,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.2],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [5.0, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [5.18, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 6.5,
+        "yMax": 6.5
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short of the glass entirely.",
+          "2": "Still short. Push the velocity.",
+          "3+": "Short again. Power well below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. The aim missed the square low.",
+          "2": "Still front iron. Aim higher on the board.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Hit the board too hard.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long off the board. Too much pace.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. Nothing on the square, nothing on the iron.",
+          "2": "Air ball again. Aim for the square.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 58.0, "v": 7.81 },
+      "description": "Textbook answer θ=58°, v=7.81 m/s. High enough arc to plausibly kiss the glass on the way down — when it does, the engine flavors it GLASS naturally."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "The ball still moves on a parabola. The backboard just gives it a second target."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nAim a touch high so the ball can kiss the glass."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Try θ near 58° — a higher arc lets the ball drop onto the square. Solve for v."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 5.0, h_h = 3.05, h_r = 2.2, g = 9.8.",
+      "At θ = 58°: t = d / (v·cos(58°)).",
+      "Solve y(t) = h_h for v → v ≈ 7.81 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "OFF THE SQUARE.",
+      "subhead": "From the wing. The board is the target, not the rim."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "THROUGH IT",
+        "GLASS":    "BANKED",
+        "RIM_DROP": "BOARD, THEN ROLLED"
+      },
+      "flavorCaption": {
+        "SWISH":    "DIRECT FROM THE WING",
+        "GLASS":    "BANKED IT IN",
+        "RIM_DROP": "GLASS, THEN IRON"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Cleared the rim without touching glass. Rare.",
+        "GLASS":    "Aimed at the square. Square delivered.",
+        "RIM_DROP": "Glass, then iron, then in. Banked the long way."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "WIDE OF THE BOARD",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. The aim missed the square low.",
+        "BACK_RIM":  "Back iron. Hit the board too hard.",
+        "SHORT":     "Came up short of the glass entirely.",
+        "OVERSHOOT": "Long off the board. Too much pace.",
+        "AIRBALL":   "Air ball. Nothing on the square, nothing on the iron."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 58°, push v near 7.8.",
+        "BACK_RIM":  "Geometry: θ near 58°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 58°, push v near 7.8.",
+        "OVERSHOOT": "Geometry: θ near 58°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 58°, v near 7.8 toward the square."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 58.0, "v": 7.81 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

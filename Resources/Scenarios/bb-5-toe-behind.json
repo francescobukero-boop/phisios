@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 5 — THE CORNER, scenario 2 (toe behind the line — three). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Schema mirrors bb-1-baseline.json. Pair-read with bb-5-toe-on-line — same form, 0.2 m further. The math change is tiny; the value change is huge.",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-5-toe-behind",
+
+  "meta": {
+    "title": "ONE TOE OUT.",
+    "subtitle": "CH 5 — THE CORNER, THREE-BALL",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 2,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["corner", "projectile", "no-wind", "three-ball"],
+    "authorIntent": "Toe behind the line — 0.2 m past the corner mark. d=6.9, h_r=2.2, h_h=3.05. Textbook answer θ=52°, v=8.78 m/s. Verification: t = 6.9 / (8.78·cos 52°) = 1.276 s; y(1.276) = 2.2 + 8.78·sin(52°)·1.276 − ½·9.8·1.276² = 3.051 m — matches h_h (err 0.001 m). Same shot geometry as 5.1, distance shifted by 0.2 m, velocity shifted by 0.11 m/s. The puzzle the user feels: barely a different shot — but in the reveal beat, that 0.2 m is the difference between 0.92 and 1.14 expected points. The math change is tiny; the value change is huge. That's the entire chapter in one comparison."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 6.9,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.2,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.2],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [6.9, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [7.08, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 8.0,
+        "yMax": 7.0
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. Corner legs need a real push.",
+          "2": "Still short. Push the velocity.",
+          "3+": "Short again. Power well below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. The arc had to cover 22 feet flat.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Velocity too high for the corner.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. Pace outran the line.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. The line never came into it.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 52.0, "v": 8.78 },
+      "description": "Textbook answer θ=52°, v=8.78 m/s. Barely different shape from the toe-on-line answer — but worth three points instead of two. The line did it."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Six inches farther than the line. Tiny distance change, real velocity change."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nd = 6.9 m now. Same form, different number."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Hold θ near 52° (same form). Solve for v — slightly higher than the toe-in shot."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 6.9, h_h = 3.05, h_r = 2.2, g = 9.8.",
+      "At θ = 52°: t = d / (v·cos(52°)).",
+      "Solve y(t) = h_h for v → v ≈ 8.78 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "ONE TOE OUT.",
+      "subhead": "Same release. Same form. The toe makes it a three."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "WORTH THREE",
+        "GLASS":    "GLASS FOR THREE",
+        "RIM_DROP": "IRON, THEN THREE"
+      },
+      "flavorCaption": {
+        "SWISH":    "THREE FROM THE CORNER",
+        "GLASS":    "BANKED THREE",
+        "RIM_DROP": "CORNER ROLL, IN"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Clean through. Same shot, more points.",
+        "GLASS":    "Square caught it. Three the long way.",
+        "RIM_DROP": "Sat on iron. Fell for three."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "OFF THE LINE",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. The arc had to cover 22 feet flat.",
+        "BACK_RIM":  "Back iron. Velocity too high for the corner.",
+        "SHORT":     "Came up short. Corner legs need a real push.",
+        "OVERSHOOT": "Long. Pace outran the line.",
+        "AIRBALL":   "Air ball. The line never came into it."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 52°, push v near 8.8.",
+        "BACK_RIM":  "Geometry: θ near 52°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 52°, push v near 8.8.",
+        "OVERSHOOT": "Geometry: θ near 52°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 52°, v near 8.8."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 52.0, "v": 8.78 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

@@ -24,6 +24,7 @@ struct RevealOverlay: View {
     let onTryCompute: (() -> Void)?
 
     @State private var visible: Bool = false
+    @State private var slideUpHapticCount: Int = 0
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,8 +56,12 @@ struct RevealOverlay: View {
             Task {
                 try? await Task.sleep(for: .milliseconds(900))
                 withAnimation(.easeOut(duration: 0.4)) { visible = true }
+                slideUpHapticCount += 1
             }
         }
+        // Soft tick when the reveal card slides up — like a polished sheet
+        // settling into place. Light weight to not compete with the verdict.
+        .sensoryFeedback(.impact(weight: .light), trigger: slideUpHapticCount)
     }
 
     // MARK: - Card
@@ -97,7 +102,10 @@ struct RevealOverlay: View {
     }
 
     private var phenomenonHeadline: some View {
-        Text(phenomenon)
+        // Anton is an all-caps display face — render uppercased so
+        // sentence-case source strings (lesson titles) don't fall back to
+        // mixed-case Anton glyphs that ship as lowercase placeholders.
+        Text(phenomenon.uppercased())
             .font(.anton(size: 28))
             .foregroundColor(.arclabWhite)
             .fixedSize(horizontal: false, vertical: true)

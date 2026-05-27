@@ -14,8 +14,10 @@ struct ScenarioPreviewCard: View {
     let actionLabel: String        // "CALL IT"
     let onTap: () -> Void
 
+    @State private var tapCount: Int = 0
+
     var body: some View {
-        Button(action: onTap) {
+        Button(action: { tapCount += 1; onTap() }) {
             VStack(alignment: .leading, spacing: 0) {
                 illustration
                     .frame(height: 220)
@@ -37,6 +39,9 @@ struct ScenarioPreviewCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        // Medium impact for the hero card — heavier than the secondary rows
+        // so the daily-card tap feels like the headline action it is.
+        .sensoryFeedback(.impact(weight: .medium), trigger: tapCount)
         .accessibilityLabel("\(titleAbove). \(bigTitle). \(actionLabel).")
     }
 

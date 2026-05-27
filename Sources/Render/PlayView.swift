@@ -9,7 +9,12 @@ struct PlayView: View {
     let scenario: ScenarioDefinition
 
     /// Optional so diagnostic/standalone launches without a container still compile.
+    /// `onClose` fires on user-initiated bail (CLOSE chip or swipe back).
+    /// `onRequestNext` fires on NEXT SHOT after a v3 outcome — router uses
+    /// this to re-pick a fresh seed from the same level-type push instead
+    /// of treating it as a bail. Both default to popping back to the picker.
     var onClose: (() -> Void)? = nil
+    var onRequestNext: (() -> Void)? = nil
 
     /// @State so the scene isn't recreated on every SwiftUI re-render.
     @State private var scene: PlaySceneNode
@@ -19,7 +24,17 @@ struct PlayView: View {
 
     @State private var thetaValue: String = ProcessInfo.processInfo.environment["ARCLAB_PRESET_THETA"] ?? ""
     @State private var velocityValue: String = ProcessInfo.processInfo.environment["ARCLAB_PRESET_V"] ?? ""
+    @State private var distanceValue: String = ""    // v3 — Level Type C
     @State private var activeField: PlayInputView.InputField = .theta
+
+    /// v3 mastery telemetry: when the scenario was opened, for time-to-answer.
+    @State private var scenarioOpenedAt: Date = Date()
+
+    /// v3 §3.5 — queue of milestone celebrations fired after PlayView outcomes.
+    /// Multiple can stack on one resolved shot (e.g. final Level D clear of
+    /// Ch 1: level-type gate → chapter-mastery → maybe tier-up). The
+    /// fullScreenCover binding fires them in order; each tap pops the next.
+    @State private var pendingCelebrations: [Celebration] = []
 
     @State private var phase: Phase = .idle
 
@@ -28,6 +43,12 @@ struct PlayView: View {
     @State private var solutionPresented: Bool = false
 
     @State private var isNumpadVisible: Bool = true
+
+    /// Haptic counters. Each event flips its own counter, so .sensoryFeedback
+    /// fires once per occurrence (SwiftUI watches for value change).
+    @State private var shootHapticCount: Int = 0
+    @State private var swishHapticCount: Int = 0
+    @State private var missHapticCount: Int = 0
 
     /// Caps next score at 1pt — "paid is paid".
     @State private var solutionLocksAttemptAt1pt: Bool = false
@@ -43,9 +64,14 @@ struct PlayView: View {
         }
     }
 
-    init(scenario: ScenarioDefinition, onClose: (() -> Void)? = nil) {
+    init(
+        scenario: ScenarioDefinition,
+        onClose: (() -> Void)? = nil,
+        onRequestNext: (() -> Void)? = nil
+    ) {
         self.scenario = scenario
         self.onClose = onClose
+        self.onRequestNext = onRequestNext
         guard case .projectile2D(_, let params) = scenario.simulation else {
             fatalError("PlayView currently supports only PROJECTILE_2D scenarios")
         }
@@ -76,7 +102,6 @@ struct PlayView: View {
                         // CLOSE on IDLE+OUTCOME; hidden in ACTION (no escape mid-flight).
                         onClose: phase == .action ? nil : onClose
                     )
-                    .frame(height: 140)
                     .opacity(phase == .action ? 0.5 : 1.0)
                     Spacer()
                         .allowsHitTesting(false)
@@ -88,17 +113,50 @@ struct PlayView: View {
                     Spacer()
                         .allowsHitTesting(false)
                     if case .idle = phase {
-                        PlayInputView(
-                            scenario: scenario,
-                            thetaValue: $thetaValue,
-                            velocityValue: $velocityValue,
-                            activeField: $activeField,
-                            onShoot: handleShoot,
-                            isNumpadVisible: $isNumpadVisible
-                        )
-                        .frame(height: 330)
-                        .background(Color.arclabBlack)
-                        .transition(.opacity)
+                        switch scenario.input.mode {
+                        case .numpadSingleTheta:
+                            PlayInputSingleFieldView(
+                                scenario: scenario,
+                                value: $thetaValue,
+                                onShoot: handleShoot,
+                                isNumpadVisible: $isNumpadVisible
+                            )
+                            .frame(height: 330)
+                            .background(Color.arclabBlack)
+                            .transition(.opacity)
+                        case .numpadSingleV:
+                            PlayInputSingleFieldView(
+                                scenario: scenario,
+                                value: $velocityValue,
+                                onShoot: handleShoot,
+                                isNumpadVisible: $isNumpadVisible
+                            )
+                            .frame(height: 330)
+                            .background(Color.arclabBlack)
+                            .transition(.opacity)
+                        case .numpadSingleD:
+                            PlayInputSingleFieldView(
+                                scenario: scenario,
+                                value: $distanceValue,
+                                onShoot: handleShoot,
+                                isNumpadVisible: $isNumpadVisible
+                            )
+                            .frame(height: 330)
+                            .background(Color.arclabBlack)
+                            .transition(.opacity)
+                        default:
+                            PlayInputView(
+                                scenario: scenario,
+                                thetaValue: $thetaValue,
+                                velocityValue: $velocityValue,
+                                activeField: $activeField,
+                                onShoot: handleShoot,
+                                isNumpadVisible: $isNumpadVisible
+                            )
+                            .frame(height: 330)
+                            .background(Color.arclabBlack)
+                            .transition(.opacity)
+                        }
                     } else if case let .outcome(resolution) = phase {
                         outcomeView(resolution: resolution)
                             .frame(height: 480)
@@ -120,13 +178,24 @@ struct PlayView: View {
         }
         .statusBarHidden(true)
         .onChange(of: thetaValue) { _, newValue in
-            scene.updateAngleIndicator(degrees: Double(newValue))
+            // Only drive the indicator from input when the player owns θ.
+            if scenario.input.mode == .numpadDual || scenario.input.mode == .numpadSingleTheta {
+                scene.updateAngleIndicator(degrees: Double(newValue))
+            }
             updateDribbleForInputState()
         }
         .onChange(of: velocityValue) { _, _ in
             updateDribbleForInputState()
         }
+        .onChange(of: distanceValue) { _, _ in
+            updateDribbleForInputState()
+        }
         .onAppear {
+            // Single-V/single-D modes: show the given θ as a static cue on the court.
+            if (scenario.input.mode == .numpadSingleV || scenario.input.mode == .numpadSingleD),
+               let givenTheta = givenVariable("theta") {
+                scene.updateAngleIndicator(degrees: givenTheta)
+            }
             // Diagnostic env-preset path needs the indicator pushed once.
             if !thetaValue.isEmpty {
                 scene.updateAngleIndicator(degrees: Double(thetaValue))
@@ -153,6 +222,7 @@ struct PlayView: View {
                             audio.play(.swish)
                         }
                         phase = .outcome(.success(flavor: flavor))
+                        swishHapticCount += 1   // .success haptic — sharp, rewarding double-tick
                     case .miss(let category):
                         // AIRBALL gets its own sound; everything else gets the sacred sustained tone.
                         if category == "AIRBALL" {
@@ -161,6 +231,7 @@ struct PlayView: View {
                             audio.play(.missTone)
                         }
                         phase = .outcome(.miss(category: category))
+                        missHapticCount += 1    // .error haptic — long buzz, the body knows
                     case .inFlight:
                         break  // shouldn't happen — callback only fires on resolve
                     }
@@ -168,7 +239,7 @@ struct PlayView: View {
             }
             // Diagnostic auto-fire for screenshot verification.
             if ProcessInfo.processInfo.environment["ARCLAB_AUTOSHOOT"] == "1",
-               !thetaValue.isEmpty, !velocityValue.isEmpty {
+               autoshootReady {
                 Task { @MainActor in
                     try? await Task.sleep(for: .milliseconds(500))
                     handleShoot()
@@ -186,22 +257,106 @@ struct PlayView: View {
                 onTryCanonical: handleTryCanonical
             )
         }
+        // v3 §3.2–§3.5 — milestone celebration queue. Multiple can stack on a
+        // single mastered shot (level-type → chapter-mastery → tier-up); the
+        // cover fires them one at a time, each tap advances to the next.
+        // Once the queue empties, pop back to the level-type picker.
+        .fullScreenCover(item: Binding(
+            get: { pendingCelebrations.first },
+            set: { _ in /* dismissal goes through onTap below */ }
+        )) { celebration in
+            CelebrationView(celebration: celebration) {
+                pendingCelebrations.removeFirst()
+                if pendingCelebrations.isEmpty {
+                    // After celebrations end, ask the router for a fresh
+                    // seed so the player keeps grinding instead of bouncing
+                    // back to the picker. Falls back to onClose if no
+                    // router callback is wired (diagnostic launches).
+                    if let onRequestNext {
+                        onRequestNext()
+                    } else {
+                        onClose?()
+                    }
+                }
+            }
+        }
+        // iOS-native escape: swipe-down or edge-swipe-right dismisses PlayView,
+        // matching the CLOSE chip's gating (action phase locks both).
+        .swipeBackToDismiss(
+            isEnabled: phase != .action && onClose != nil
+        ) {
+            onClose?()
+        }
+        // Haptic texture: medium thud on SHOOT, .success on swish, .error on miss.
+        // Keeps the play loop physically grounded — every key beat has a body cue.
+        .sensoryFeedback(.impact(weight: .medium), trigger: shootHapticCount)
+        .sensoryFeedback(.success, trigger: swishHapticCount)
+        .sensoryFeedback(.error, trigger: missHapticCount)
     }
 
     private func handleShoot() {
-        guard let theta = Double(thetaValue), let v = Double(velocityValue) else { return }
+        // v3: source unsupplied variables from situation.variables for single-unknown modes.
+        let theta: Double
+        let v: Double
+        switch scenario.input.mode {
+        case .numpadSingleTheta:
+            guard let t = Double(thetaValue),
+                  let givenV = givenVariable("v") else { return }
+            theta = t
+            v = givenV
+        case .numpadSingleV:
+            guard let parsedV = Double(velocityValue),
+                  let givenTheta = givenVariable("theta") else { return }
+            theta = givenTheta
+            v = parsedV
+        case .numpadSingleD:
+            // Level Type C: player supplies the predicted distance. Both
+            // θ and v are given by the scenario; we still need to fire a
+            // shot in the sim so the player sees where the ball lands.
+            // Scoring against the player's distance happens at outcome time
+            // (see Day 5 — adaptive scoring). For now, just simulate the
+            // given (θ, v) and let the existing outcome categorize.
+            guard let givenTheta = givenVariable("theta"),
+                  let givenV = givenVariable("v") else { return }
+            theta = givenTheta
+            v = givenV
+        default:
+            // NUMPAD_DUAL legacy path: both fields driven by the player.
+            guard let t = Double(thetaValue), let parsedV = Double(velocityValue) else { return }
+            theta = t
+            v = parsedV
+        }
         phase = .action
+        shootHapticCount += 1   // heavy impact on launch — feels like a release
         scene.startSimulation(answer: ProjectileAnswer(thetaDegrees: theta, velocity: v))
+    }
+
+    /// Reads a given variable's value from `scenario.situation.variables`
+    /// for the case the player isn't supplying it (single-unknown level types).
+    private func givenVariable(_ symbol: String) -> Double? {
+        scenario.situation.variables.first(where: { $0.symbol == symbol })?.value
     }
 
     /// Hold the ball once the player starts typing (free-throw shooters
     /// don't keep bouncing during the math). Resume only on full clear.
     private func updateDribbleForInputState() {
         guard case .idle = phase else { return }
-        if thetaValue.isEmpty && velocityValue.isEmpty {
-            scene.resumeIdleDribble()
-        } else {
+        // For single-unknown modes, only the relevant field matters.
+        let anyInputActive: Bool
+        switch scenario.input.mode {
+        case .numpadSingleTheta:
+            anyInputActive = !thetaValue.isEmpty
+        case .numpadSingleV:
+            anyInputActive = !velocityValue.isEmpty
+        case .numpadSingleD:
+            anyInputActive = !distanceValue.isEmpty
+        default:
+            anyInputActive = !thetaValue.isEmpty || !velocityValue.isEmpty
+        }
+        if anyInputActive {
             scene.pauseIdleDribble()
+        } else {
+            scene.resumeIdleDribble()
         }
     }
 
@@ -229,10 +384,13 @@ struct PlayView: View {
             let isFirstTry = attemptCounter == 1 && flavor == "SWISH"
             let earnedXP = computeEarnedXP(flavor: flavor)
             SwishView(
+                // v3 audit polish: stats show the actual shot's θ and v,
+                // sourcing from either user input or the scenario-given
+                // variable depending on which one the player solved for.
                 scenario: scenario,
                 flavor: flavor,
-                theta: Double(thetaValue) ?? 0,
-                velocity: Double(velocityValue) ?? 0,
+                theta: Double(thetaValue) ?? givenVariable("theta") ?? 0,
+                velocity: Double(velocityValue) ?? givenVariable("v") ?? 0,
                 score: computeScore(flavor: flavor),
                 isFirstTryClean: isFirstTry,
                 xpGained: earnedXP,
@@ -252,6 +410,7 @@ struct PlayView: View {
             )
             .onAppear {
                 scene.renderMissArcs(ghostTrajectory: cachedGhostTrajectory)
+                persistMissOutcome(category: category)
             }
         }
     }
@@ -285,6 +444,121 @@ struct PlayView: View {
             // earnedXP already incorporates the anti-farming decay.
             p.totalXP += earnedXP
             p.recomputeRank()
+
+            // v3: record the attempt and queue two celebration kinds —
+            // level-type promotion + chapter mastery (if this write cleared
+            // the last level type in the chapter). Tier-up + completion
+            // celebrations were cut after audit; XP/IQ progression still
+            // shows in HomeView and ProfileView.
+            let preChapterMastered = chapterIsMastered(in: p)
+            let didMaster = recordV3Attempt(
+                profile: &p,
+                outcome: outcomeFromFlavor(flavor),
+                isFirstTry: isFirstTry,
+                now: now
+            )
+            let postChapterMastered = chapterIsMastered(in: p)
+
+            var queue: [Celebration] = []
+            if didMaster, let lt = scenario.meta.levelType {
+                queue.append(.levelType(lt))
+            }
+            if !preChapterMastered, postChapterMastered, let chapter = currentChapter() {
+                queue.append(.chapterMastery(chapter: chapter))
+            }
+            if !queue.isEmpty {
+                Task { @MainActor in
+                    pendingCelebrations.append(contentsOf: queue)
+                }
+            }
+        }
+    }
+
+    /// v3: record a miss into the level-type mastery model. Miss → 0.0 score.
+    private func persistMissOutcome(category: String) {
+        // Misses still update the rolling window for mastery (per locked spec:
+        // miss doesn't reset, the window just shifts). Don't dedupe via
+        // outcomeWritten — each miss attempt is its own record.
+        let now = Date()
+        profile.mutate { p in
+            recordV3Attempt(
+                profile: &p,
+                outcome: .miss,
+                isFirstTry: attemptCounter == 1,
+                now: now
+            )
+        }
+    }
+
+    /// Shared mastery-write helper. No-op for legacy scenarios with no v3 metadata.
+    /// Returns true iff this attempt promoted the level type to MASTERED.
+    @discardableResult
+    private func recordV3Attempt(
+        profile p: inout PlayerProfile,
+        outcome: AttemptOutcome,
+        isFirstTry: Bool,
+        now: Date
+    ) -> Bool {
+        guard let chapterId = scenario.meta.chapterId,
+              let levelType = scenario.meta.levelType else { return false }
+        let bucket = scenario.meta.difficultyBucket ?? .easy
+        let timeMs = Int(now.timeIntervalSince(scenarioOpenedAt) * 1000)
+        let attempt = AttemptRecord(
+            situationId: scenario.scenarioId.rawValue,
+            levelTypeId: levelType.rawValue,
+            outcome: outcome,
+            isFirstTry: isFirstTry,
+            hintsUsed: 0,                       // v1 — hint tracking deferred
+            timeToAnswerMs: max(0, timeMs),
+            difficultyBucket: bucket,
+            wasReview: false,                   // wired in Day 12 review scheduler
+            wasInterleaved: false,              // wired in Day 11 picker integration
+            timestamp: now
+        )
+        return MasteryService.recordAttempt(
+            attempt,
+            chapterId: chapterId,
+            levelType: levelType,
+            in: &p,
+            now: now
+        )
+    }
+
+    /// Find the Chapter object owning this scenario, for celebration queueing.
+    private func currentChapter() -> Chapter? {
+        guard let chapterId = scenario.meta.chapterId else { return nil }
+        return BasketballCurriculum.chapters.first { $0.id == chapterId }
+    }
+
+    /// True iff every Earth-chapter level type (A/B/C/D) of the current
+    /// scenario's chapter is .mastered. Used to decide whether THIS write
+    /// just completed a chapter (compare pre vs post).
+    private func chapterIsMastered(in profile: PlayerProfile) -> Bool {
+        guard let chapterId = scenario.meta.chapterId else { return false }
+        return LevelTypeID.earthChapterTypes.allSatisfy { lt in
+            let key = MasteryService.key(chapterId: chapterId, levelType: lt)
+            return profile.levelTypeMasteries[key]?.status == .mastered
+        }
+    }
+
+    /// Is the input ready to autoshoot? Mode-aware: only requires the
+    /// fields the player would actually fill for the current input mode.
+    private var autoshootReady: Bool {
+        switch scenario.input.mode {
+        case .numpadSingleTheta: return !thetaValue.isEmpty
+        case .numpadSingleV:     return !velocityValue.isEmpty
+        case .numpadSingleD:     return !distanceValue.isEmpty
+        default:                 return !thetaValue.isEmpty && !velocityValue.isEmpty
+        }
+    }
+
+    /// v1 outcome flavor → v3 AttemptOutcome.
+    private func outcomeFromFlavor(_ flavor: String) -> AttemptOutcome {
+        switch flavor {
+        case "SWISH":    return .swish
+        case "GLASS":    return .glass
+        case "RIM_DROP": return .rimDrop
+        default:         return .swish
         }
     }
 
@@ -320,15 +594,34 @@ struct PlayView: View {
     }
 
     private func handleNextLevel() {
-        // MVP has only one scenario — fall through to REPLAY for now.
-        handleReplay()
+        // v3: for scenarios with a level type, pop back to the picker so
+        // NextSituationPicker can surface a fresh seed (avoids replaying
+        // the just-seen scenario; respects the rolling-window variation
+        // rule from GAME_v3_LOCKED.md §2.5). For legacy v2 scenarios with
+        // no level type, fall through to REPLAY.
+        if scenario.meta.levelType != nil {
+            // v3: ask the router for a fresh seed in the same level-type push.
+            // Falls back to onClose (then to handleReplay) if no router is
+            // wired (diagnostic launches).
+            if let onRequestNext {
+                onRequestNext()
+            } else if let onClose {
+                onClose()
+            } else {
+                handleReplay()
+            }
+        } else {
+            handleReplay()
+        }
     }
 
     private func handleReplay() {
         thetaValue = ""
         velocityValue = ""
+        distanceValue = ""
         attemptCounter = 1
         outcomeWritten = false
+        scenarioOpenedAt = Date()
         scene.resetForNewShot()
         phase = .idle
     }
@@ -336,8 +629,10 @@ struct PlayView: View {
     private func handleTryAgain() {
         thetaValue = ""
         velocityValue = ""
+        distanceValue = ""
         attemptCounter += 1
         outcomeWritten = false
+        scenarioOpenedAt = Date()
         scene.resetForNewShot()
         phase = .idle
     }

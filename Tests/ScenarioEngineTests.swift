@@ -9,10 +9,10 @@ final class ScenarioEngineTests: XCTestCase {
 
     func test_referenceScenario_decodes() throws {
         let scenario = try loadReferenceScenario()
-        XCTAssertEqual(scenario.scenarioId.rawValue, "bb-freethrow-001")
+        XCTAssertEqual(scenario.scenarioId.rawValue, "bb-1-baseline")
         XCTAssertEqual(scenario.schemaVersion, SemVer(1, 1, 0))
         XCTAssertEqual(scenario.meta.title, "MAKE THE SHOT.")
-        XCTAssertEqual(scenario.meta.subtitle, "FREE THROW — LEVEL 01")
+        XCTAssertEqual(scenario.meta.subtitle, "CH 1 — THE ARC, BASELINE")
         XCTAssertEqual(scenario.situation.variables.count, 4)
         XCTAssertEqual(scenario.input.mode, .numpadDual)
         XCTAssertEqual(scenario.input.fields.count, 2)
@@ -95,6 +95,36 @@ final class ScenarioEngineTests: XCTestCase {
             XCTAssertEqual(flavor, scenario.smokeTest.expectedFlavor)
         case .miss, .inFlight:
             XCTFail("Smoke test expected success, got \(outcome)")
+        }
+    }
+
+    /// Universal smoke test: every scenario JSON shipped in the bundle must
+    /// pass its own smoke test. If you add a scenario, this catches a wrong
+    /// (θ, v) answer the moment you build. Failing here means the JSON's
+    /// declared answer doesn't actually score in the simulation.
+    func test_smokeTest_everyScenarioInBundle_passes() throws {
+        let bundle = Bundle(for: type(of: self))
+        guard let urls = bundle.urls(forResourcesWithExtension: "json", subdirectory: nil) else {
+            XCTFail("No scenario JSONs found in test bundle.")
+            return
+        }
+        let scenarioURLs = urls.filter { $0.lastPathComponent.hasPrefix("bb-") }
+        XCTAssertGreaterThan(scenarioURLs.count, 1, "Expected multiple scenarios in bundle.")
+        for url in scenarioURLs {
+            let stem = url.deletingPathExtension().lastPathComponent
+            let data = try Data(contentsOf: url)
+            let scenario = try ScenarioLoader.decode(data, scenarioId: ScenarioID(stem))
+            let outcome = runSmokeTest(for: scenario)
+            switch outcome {
+            case .success(let flavor):
+                XCTAssertEqual(flavor, scenario.smokeTest.expectedFlavor,
+                               "[\(stem)] expected flavor \(scenario.smokeTest.expectedFlavor), got \(flavor)")
+            case .miss(let category):
+                let answer = answer(from: scenario.smokeTest.answer)
+                XCTFail("[\(stem)] smoke test expected success, got miss(\(category)) — (θ=\(answer.thetaDegrees), v=\(answer.velocity))")
+            case .inFlight:
+                XCTFail("[\(stem)] smoke test still in-flight after timeout")
+            }
         }
     }
 
@@ -196,12 +226,12 @@ final class ScenarioEngineTests: XCTestCase {
 
     private func loadReferenceScenario() throws -> ScenarioDefinition {
         let bundle = Bundle(for: type(of: self))
-        guard let url = bundle.url(forResource: "bb-freethrow-001", withExtension: "json") else {
-            XCTFail("bb-freethrow-001.json not found in test bundle. Check project.yml resources.")
-            throw ScenarioLoadError.notFound(scenarioId: "bb-freethrow-001")
+        guard let url = bundle.url(forResource: "bb-1-baseline", withExtension: "json") else {
+            XCTFail("bb-1-baseline.json not found in test bundle. Check project.yml resources.")
+            throw ScenarioLoadError.notFound(scenarioId: "bb-1-baseline")
         }
         let data = try Data(contentsOf: url)
-        return try ScenarioLoader.decode(data, scenarioId: "bb-freethrow-001")
+        return try ScenarioLoader.decode(data, scenarioId: "bb-1-baseline")
     }
 
     private func runSmokeTest(for scenario: ScenarioDefinition) -> ProjectileOutcome {

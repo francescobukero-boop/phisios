@@ -20,13 +20,16 @@ enum Sport: String, Sendable, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// v3 playtest fix #PT1: sport subheads drop academic vocabulary
+    /// (per CONCEPT.md voice rules — no "projectile motion", no "Magnus force").
+    /// Replaced with the actual sport-vocab idea each domain teaches.
     var physicsDomainSubhead: String {
         switch self {
-        case .basketball: return "PROJECTILE MOTION"
-        case .soccer:     return "MAGNUS FORCE"
-        case .pool:       return "ELASTIC COLLISIONS"
-        case .archery:    return "RANGE \u{00B7} DRAG"
-        case .f1:         return "FRICTION \u{00B7} TRACTION"
+        case .basketball: return "THE ARC"
+        case .soccer:     return "THE CURVE"
+        case .pool:       return "THE BREAK"
+        case .archery:    return "THE DISTANCE"
+        case .f1:         return "THE TURN"
         }
     }
 

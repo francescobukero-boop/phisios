@@ -246,9 +246,9 @@ private struct NumpadButton: View {
         } label: {
             label
                 .frame(maxWidth: .infinity)
-                .frame(height: 40)
+                .frame(height: 44)
                 .overlay(borderOverlay)
-                // Entire 40pt frame tappable, not just the digit glyph.
+                // Entire 44pt frame tappable, meets HIG minimum touch target.
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

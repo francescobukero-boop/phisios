@@ -47,11 +47,14 @@ struct CallPlayView: View {
     @State private var computeTheta: Double = 50.0
     @State private var computeVelocity: Double = 7.0
 
+    /// Medium impact on RELEASE — the physical "ball leaving the hand" beat.
+    @State private var releaseHapticCount: Int = 0
+
     /// Max attempts in compute mode before returning to chapter.
     private let computeMaxAttempts = 3
 
     enum Phase: Sendable, Equatable {
-        /// Shooter at the line, "WILL THIS GO IN?" prompt, tap to release.
+        /// Shooter at the line, "CALL IT." prompt, tap to release.
         case stance
         /// Ball arcing toward apex; no UI on the play surface.
         case release
@@ -141,6 +144,14 @@ struct CallPlayView: View {
             .onChange(of: geometry.size) { _, _ in propagateLayout(metrics: metrics) }
         }
         .statusBarHidden(true)
+        // iOS-native escape: mirror the CLOSE chip's gating so swipe-down /
+        // edge-swipe-right dismiss the same phases the chip allows.
+        .swipeBackToDismiss(
+            isEnabled: shouldShowClose && onClose != nil
+        ) {
+            onClose?()
+        }
+        .sensoryFeedback(.impact(weight: .medium), trigger: releaseHapticCount)
         .onAppear {
             configureScene()
             startAutoplayIfRequested()
@@ -259,7 +270,7 @@ struct CallPlayView: View {
 
     private var stanceDock: some View {
         VStack(spacing: Spacing.sm) {
-            Text("WILL THIS GO IN?")
+            Text("CALL IT.")
                 .font(.anton(size: 32))
                 .foregroundColor(.arclabWhite)
                 .multilineTextAlignment(.center)
@@ -373,7 +384,7 @@ struct CallPlayView: View {
         return VStack(alignment: .leading, spacing: 0) {
             Spacer().frame(height: Spacing.lg)
 
-            Text(madeIt ? "YOU GOT IT." : "MISSED.")
+            Text(madeIt ? "GOT IT." : "MISSED.")
                 .font(.anton(size: 64))
                 .foregroundColor(.arclabWhite)
                 .padding(.horizontal, Spacing.md)
@@ -487,7 +498,7 @@ struct CallPlayView: View {
             return WalkthroughCard(
                 headline: "There's a formula for it.",
                 math: "y(t) = h + v · sin(θ) · t − ½ · g · t²",
-                body: "Gravity pulls the ball down. Nothing else acts on it. So every shot is a parabola — and the parabola has a single equation."
+                body: "Gravity pulls the ball down. Nothing else acts on it. Every shot is the same shape — and it has one equation."
             )
         case 1:
             return WalkthroughCard(
@@ -589,6 +600,7 @@ struct CallPlayView: View {
 
     private func handleRelease() {
         phase = .release
+        releaseHapticCount += 1   // medium impact — the player launched the ball
         scene.startSimulation(
             answer: ProjectileAnswer(thetaDegrees: canonicalTheta, velocity: canonicalVelocity),
             pauseAtApex: true

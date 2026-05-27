@@ -22,6 +22,7 @@ struct AppOpenView: View {
                     .transition(.opacity)
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .animation(.easeOut(duration: 0.25), value: loadComplete && capReached)
         .background(Color.arclabBlack.ignoresSafeArea())
         .onAppear(perform: startSplashTimers)
@@ -33,32 +34,42 @@ struct AppOpenView: View {
     }
 
     private var splash: some View {
-        VStack(spacing: 0) {
-            Spacer()
+        ZStack {
+            // Background fills the screen, regardless of inner layout sizing.
+            Color.arclabBlack.ignoresSafeArea()
 
-            Text("ARCLAB")
-                .font(.anton(size: 96))
-                .foregroundColor(.arclabWhite)
-                .tracking(2)
-                .dynamicTypeSize(.large ... .accessibility1)
+            // Center stack: brand mark + loading label.
+            VStack(spacing: Spacing.lg) {
+                Text("ARCLAB")
+                    .font(.anton(size: 96))
+                    .foregroundColor(.arclabWhite)
+                    .tracking(2)
+                    .dynamicTypeSize(.large ... .accessibility1)
 
-            Spacer().frame(height: Spacing.lg)
+                Text(loadFailed ? "NO SIGNAL. TAP TO RETRY." : "LOADING")
+                    .font(.sfMono(size: 11, weight: loadFailed ? .medium : .regular))
+                    .foregroundColor(loadFailed ? .arclabWhite : .arclabMidGrey)
+                    .tracking(2.0)
+                    .accessibilityLabel(loadFailed ? "Offline. Tap to retry loading." : "Loading.")
+            }
 
-            Text(loadFailed ? "NO SIGNAL. TAP TO RETRY." : "LOADING")
-                .font(.sfMono(size: 11, weight: loadFailed ? .medium : .regular))
-                .foregroundColor(loadFailed ? .arclabWhite : .arclabMidGrey)
-                .tracking(2.0)
-                .accessibilityLabel(loadFailed ? "Offline. Tap to retry loading." : "Loading.")
-
-            Spacer()
-
-            if showProgressSliver && !loadComplete {
-                ProgressSliver()
-                    .padding(.horizontal, Spacing.xxl)
-                    .padding(.bottom, Spacing.xxl)
-                    .transition(.opacity)
+            // Sliver pinned to the bottom inset via VStack + Spacer, so its
+            // position is independent of where ARCLAB lands vertically.
+            // v3 #PT10: previously the sliver lived inside the VStack with the
+            // brand mark and was invisible because Spacer/maxFrame stack-sizing
+            // collapsed it. Hoisting it to a dedicated bottom-pinned overlay
+            // makes it render regardless of inner-stack layout state.
+            VStack(spacing: 0) {
+                Spacer()
+                if showProgressSliver {
+                    ProgressSliver()
+                        .padding(.horizontal, Spacing.xxl)
+                        .padding(.bottom, Spacing.xxl)
+                        .transition(.opacity)
+                }
             }
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .contentShape(Rectangle())
         .onTapGesture { if loadFailed { retryLoad() } }
     }
@@ -70,8 +81,13 @@ struct AppOpenView: View {
         capReached = false
 
         sliverTask = Task {
+            // v3 #PT10: dropped the `!loadComplete` guard here too. loadComplete
+            // races to true at 0ms because v1 bundles all assets — the original
+            // guard was sized for network-load splashes that no longer exist.
+            // The sliver now fades in at 400ms and animates across the 900ms
+            // capReached window, signaling motion during the brand-mark hold.
             try? await Task.sleep(for: .milliseconds(400))
-            guard !Task.isCancelled, !loadComplete else { return }
+            guard !Task.isCancelled else { return }
             await MainActor.run {
                 withAnimation(.easeIn(duration: 0.2)) { showProgressSliver = true }
             }

@@ -105,15 +105,17 @@ struct ProfileView: View {
             }
             Spacer()
             if atRisk && streak > 0 {
+                // v3 audit fix #7: crimson is sacred to miss state. Streak-at-risk
+                // uses white/mid-grey treatment per CONCEPT.md palette rules.
                 Text("AT RISK")
                     .font(.sfMono(size: 10, weight: .medium))
-                    .foregroundColor(.arclabCrimson)
+                    .foregroundColor(.arclabWhite)
                     .tracking(2.0)
                     .padding(.horizontal, Spacing.xs)
                     .padding(.vertical, Spacing.xxs)
                     .overlay(
                         RoundedRectangle(cornerRadius: Sizing.cornerRadius)
-                            .stroke(Color.arclabCrimson, lineWidth: Sizing.borderWidth)
+                            .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
                     )
             }
         }
@@ -159,30 +161,49 @@ struct ProfileView: View {
     }
 
     private func badgeRow(for chapter: Chapter) -> some View {
+        // v3 playtest #PT3: respect chapter lock state. Unshippable chapters
+        // (Ch 2-5 in v3 — no level-type seeds) show as locked, matching
+        // ChapterListView's lock affordance instead of looking identical to
+        // unearned-but-available rows.
+        let locked = !chapter.isShippableInV3
         let earned = isEarned(chapter)
+        let textColor: Color = locked
+            ? .arclabBorderGrey
+            : (earned ? .arclabWhite : .arclabBorderGrey)
         return HStack(spacing: Spacing.sm) {
             Text(String(format: "%02d", chapter.index))
                 .font(.sfMono(size: 11))
-                .foregroundColor(earned ? .arclabMidGrey : .arclabBorderGrey)
+                .foregroundColor(.arclabMidGrey)
+                .opacity(locked ? 0.4 : 1.0)
                 .tracking(2.0)
                 .frame(width: 28, alignment: .leading)
 
             Text(chapter.title.uppercased())
                 .font(.sfMono(size: 13, weight: .medium))
-                .foregroundColor(earned ? .arclabWhite : .arclabBorderGrey)
+                .foregroundColor(textColor)
+                .opacity(locked ? 0.5 : 1.0)
                 .tracking(1.5)
 
             Spacer()
 
-            Text(earned ? "✓" : "—")
-                .font(.sfMono(size: 13))
-                .foregroundColor(earned ? .arclabWhite : .arclabBorderGrey)
+            if locked {
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.arclabMidGrey)
+                    .accessibilityLabel("Locked")
+            } else {
+                Text(earned ? "✓" : "—")
+                    .font(.sfMono(size: 13))
+                    .foregroundColor(earned ? .arclabWhite : .arclabBorderGrey)
+            }
         }
         .frame(minHeight: 44)
         .padding(.horizontal, Spacing.sm)
         .overlay(
             RoundedRectangle(cornerRadius: Sizing.cardRadius)
-                .stroke(earned ? Color.arclabBorderGrey : Color.arclabBorderGrey.opacity(0.4),
+                .stroke(locked
+                        ? Color.arclabBorderGrey.opacity(0.25)
+                        : (earned ? Color.arclabBorderGrey : Color.arclabBorderGrey.opacity(0.4)),
                         lineWidth: Sizing.borderWidth)
         )
     }

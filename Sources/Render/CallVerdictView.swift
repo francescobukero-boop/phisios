@@ -16,6 +16,9 @@ struct CallVerdictView: View {
     /// True iff the ball actually went in (regardless of call).
     let ballWentIn: Bool
 
+    /// Bumped once on first appear to fire the verdict haptic exactly once.
+    @State private var verdictHapticCount: Int = 0
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Spacer().frame(height: Spacing.xl)
@@ -32,6 +35,11 @@ struct CallVerdictView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(backgroundTint.ignoresSafeArea())
+        // Verdict haptic — .success when the user read it right (either GOOD
+        // CALL or NAILED IT), .error when they read it wrong (MISSED IT, WRONG).
+        // Lands ~150ms after the verb appears, syncs with audio cue.
+        .sensoryFeedback(wasCorrect ? .success : .error, trigger: verdictHapticCount)
+        .onAppear { verdictHapticCount += 1 }
     }
 
     // MARK: - Copy
@@ -49,12 +57,15 @@ struct CallVerdictView: View {
 
     /// Single italic line under the verb — explains the call vs the outcome
     /// in plain language, not stat-coded.
+    /// v3 audit fix #10: drops second-person agency-of-failure ("Your read
+    /// was off") and invented idioms ("bottom of the net"). Matches the
+    /// onboarding diagnostic voice exactly: "Read it right." / "Read it wrong."
     private var subheadCopy: String {
         switch (wasCorrect, ballWentIn) {
-        case (true,  true):  return "Your read was right. The shot went in."
-        case (true,  false): return "Your read was right. The shot didn't fall."
-        case (false, true):  return "Your read was off. It found the bottom of the net."
-        case (false, false): return "Your read was off. The ball never made it home."
+        case (true,  true):  return "Read it right. Ball went in."
+        case (true,  false): return "Read it right. Ball missed."
+        case (false, true):  return "Read it wrong. Ball went in."
+        case (false, false): return "Read it wrong. Ball missed."
         }
     }
 

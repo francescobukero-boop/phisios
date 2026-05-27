@@ -49,11 +49,11 @@ struct SportPickerView: View {
 
     private var pickHeading: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("PICK YOUR SPORT.")
+            Text("PICK A SPORT.")
                 .font(.anton(size: 32))
                 .foregroundColor(.arclabWhite)
 
-            Text("Each sport is a different physics domain.")
+            Text("Each sport moves a different way.")
                 .font(.barlowCondensed(size: 14, italic: true))
                 .foregroundColor(.arclabMidGrey)
         }

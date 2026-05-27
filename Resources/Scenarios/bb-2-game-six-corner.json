@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 2 — THE SPIN, anchor scenario (Ray Allen 2013 Game 6 archetype). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Per BASKETBALL_JOURNEY v2 §7, voice uses moment + location ('GAME SIX. CORNER POCKET.'), never the athlete's name.",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-2-game-six-corner",
+
+  "meta": {
+    "title": "GAME SIX. CORNER POCKET.",
+    "subtitle": "CH 2 — THE SPIN, ANCHOR",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 3,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["spin", "projectile", "no-wind", "corner-three", "anchor"],
+    "authorIntent": "The Game 6 corner three. d=6.7 (NBA corner distance = 22 ft), h_r=2.3, h_h=3.05. Textbook answer θ=54°, v=8.67 m/s. Verification: t = 6.7 / (8.67·cos 54°) = 1.315 s; y(1.315) = 2.3 + 8.67·sin(54°)·1.315 − ½·9.8·1.315² = 3.051 m — matches h_h (err 0.001 m). Cultural framing is the moment ('GAME SIX. CORNER POCKET.'), not the athlete — per BASKETBALL_JOURNEY v2 §7. Pedagogically this is where spin and pressure meet: full-court adrenaline, a clean release, and a rim that holds because the ball is rotating right."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 6.7,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.3,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.3],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [6.7, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [6.88, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 8.0,
+        "yMax": 7.0
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. Legs from the corner had nothing left.",
+          "2": "Still short. Push the velocity.",
+          "3+": "Short again. Power well below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. Backspin only helps if the arc clears.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Even with rotation, that's too much pace.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. Spin is forgiving, not a refund on power.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball from the corner. The line was lost.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 54.0, "v": 8.67 },
+      "description": "Textbook answer θ=54°, v=8.67 m/s. The arc clears 4 m and lands cleanly through the cylinder — visibly the 'rope' shot the chapter is celebrating."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Corner three: about 22 feet (6.7 m). Same equations, longer arc."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nDistance jumps; velocity jumps with it."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Try θ near 54°. Expect v in the high 8s."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 6.7, h_h = 3.05, h_r = 2.3, g = 9.8.",
+      "At θ = 54°: t = d / (v·cos(54°)).",
+      "Solve y(t) = h_h for v → v ≈ 8.67 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "GAME SIX. CORNER POCKET.",
+      "subhead": "Full-court legs. Right corner. The rotation is the whole shot."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "RIPPED THE NET",
+        "GLASS":    "TAGGED THE SQUARE",
+        "RIM_DROP": "RIM CAUGHT IT"
+      },
+      "flavorCaption": {
+        "SWISH":    "GAME SIX. STAYS ALIVE.",
+        "GLASS":    "GLASS IN THE CORNER",
+        "RIM_DROP": "SPIN HELD THE BOUNCE"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "Clean rotation under full pressure. Rope.",
+        "GLASS":    "Kissed the corner of the square. In.",
+        "RIM_DROP": "Back iron, the spin held it, the shot fell."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "OFF THE IRON",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. Backspin only helps if the arc clears.",
+        "BACK_RIM":  "Back iron. Even with rotation, that's too much pace.",
+        "SHORT":     "Came up short. Legs from the corner had nothing left.",
+        "OVERSHOOT": "Long. Spin is forgiving, not a refund on power.",
+        "AIRBALL":   "Air ball from the corner. The line was lost."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 54°, push v near 8.7.",
+        "BACK_RIM":  "Geometry: θ near 54°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 54°, push v near 8.7.",
+        "OVERSHOOT": "Geometry: θ near 54°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 54°, v near 8.7."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 54.0, "v": 8.67 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

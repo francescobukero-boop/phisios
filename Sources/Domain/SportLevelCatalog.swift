@@ -14,7 +14,7 @@ enum SportLevelCatalog {
         case .basketball:
             return [
                 LevelEntry(
-                    scenarioId: "bb-freethrow-001",
+                    scenarioId: "bb-1-baseline",
                     levelNumber: 1,
                     shortLabel: "MAKE THE SHOT."
                 )

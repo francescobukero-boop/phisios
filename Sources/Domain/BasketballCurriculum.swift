@@ -1,140 +1,270 @@
 import Foundation
 
-/// v2.1 basketball curriculum. Chapter 1 is fully authored as a 6-card story;
-/// chapters 2–5 are scaffolded as 3-card placeholders, ready to author in
-/// the content pass.
+/// v2 basketball curriculum — 5 chapters, 3 scenarios each, authored from
+/// BASKETBALL_JOURNEY.md v2 (2026-05-21).
+///
+/// Chapter sequence: Arc → Spin → Fade → Glass → Corner Three.
+/// Each chapter ships a 6-card story lesson + 3 scenarios (easy / harder /
+/// famous-moment anchor). Anchor scenarios use archetype-with-fingerprint
+/// naming per §7 (era + team + signature, never the athlete's literal name).
+///
+/// Voice rules from §11 are enforced throughout: no "let's", third-person
+/// not second, each lesson ends declarative, no academic concept names.
 enum BasketballCurriculum {
     static let chapters: [Chapter] = [
         Chapter(
-            id: "bb-ch1-projectile",
+            id: "bb-ch1-arc",
             sport: .basketball,
             index: 1,
             title: "The arc",
-            subtitle: "Every shot is a projectile. Here's the baseline.",
-            lesson: lesson_1_1,
-            scenarioIDs: ["bb-freethrow-001"]
+            subtitle: "Every shot is the same shape. Arc height controls everything.",
+            lesson: lesson_1_arc,
+            scenarioIDs: ["bb-1-baseline", "bb-1-flat", "bb-1-logo-three"],
+            lensReveal: "Flat shots will look flat to you now.",
+            levelTypeSeeds: [
+                .findTheta: [
+                    "bb-a-freethrow", "bb-a-elbow-r", "bb-a-top-key", "bb-a-logo",
+                    "bb-a-wing-catch", "bb-a-tall-release", "bb-a-short-guard",
+                    "bb-a-postup", "bb-a-half-court", "bb-a-tiptoe-corner",
+                    "bb-a-ugly-1", "bb-a-ugly-2"
+                ],
+                .findV: [
+                    "bb-b-freethrow", "bb-b-elbow", "bb-b-top-key", "bb-b-wing",
+                    "bb-b-corner-3", "bb-b-rainbow", "bb-b-flat", "bb-b-logo",
+                    "bb-b-stepback", "bb-b-floater", "bb-b-ugly-1", "bb-b-ugly-2"
+                ],
+                .findD: [
+                    "bb-c-freethrow", "bb-c-elbow", "bb-c-wing-throw", "bb-c-flat-throw",
+                    "bb-c-high-floater", "bb-c-rainbow", "bb-c-stepback-arc",
+                    "bb-c-pull-up", "bb-c-half-court", "bb-c-ugly-1"
+                ],
+                // Level D content includes the 15 v2 scenarios. Per locked
+                // spec §3.7 + §8 decision #9, all v2 anchors map here.
+                .findBoth: [
+                    "bb-1-baseline", "bb-1-flat", "bb-1-logo-three",
+                    "bb-2-no-spin", "bb-2-shooters-roll", "bb-2-game-six-corner",
+                    "bb-3-standstill", "bb-3-slight-fade", "bb-3-one-legged",
+                    "bb-4-wing-bank", "bb-4-wrong-angle", "bb-4-elbow-bank",
+                    "bb-5-toe-on-line", "bb-5-toe-behind", "bb-5-corner-pocket"
+                ]
+            ]
         ),
         Chapter(
-            id: "bb-ch2-release-height",
+            id: "bb-ch2-spin",
             sport: .basketball,
             index: 2,
-            title: "Release height",
-            subtitle: "Why shooting from your chest fails — even with perfect form.",
-            lesson: scaffold(
-                id: "bb-l2.1-release-height",
-                title: "Why release height dominates at low arcs",
-                oneLiner: "Lowering your release by 30cm is 4× harder to compensate than you think.",
-                seconds: 90
-            ),
-            scenarioIDs: []
+            title: "The spin",
+            subtitle: "The shooter's roll is real. Backspin lifts and softens.",
+            lesson: lesson_2_spin,
+            scenarioIDs: ["bb-2-no-spin", "bb-2-shooters-roll", "bb-2-game-six-corner"],
+            lensReveal: "When the announcer says 'good rotation,' you know what they see.",
+            // v3: Ch 2-5 ship with Level D only until simulation gains spin/fade/bank.
+            levelTypeSeeds: [:]
         ),
         Chapter(
-            id: "bb-ch3-flat-vs-high",
+            id: "bb-ch3-fade",
             sport: .basketball,
             index: 3,
-            title: "Flat arc vs high arc",
-            subtitle: "The tradeoff between margin and effort.",
-            lesson: scaffold(
-                id: "bb-l3.1-arc-margin",
-                title: "Why a higher arc has more rim margin",
-                oneLiner: "A steeper ball sees a wider rim — but costs more speed.",
-                seconds: 75
-            ),
-            scenarioIDs: []
+            title: "The fade",
+            subtitle: "Your body's momentum becomes the ball's momentum.",
+            lesson: lesson_3_fade,
+            scenarioIDs: ["bb-3-standstill", "bb-3-slight-fade", "bb-3-one-legged"],
+            lensReveal: "The body decides. The hand follows. Watch any jumper.",
+            levelTypeSeeds: [:]
         ),
         Chapter(
-            id: "bb-ch4-distance",
+            id: "bb-ch4-glass",
             sport: .basketball,
             index: 4,
-            title: "Distance & range",
-            subtitle: "Why a half-court heave needs a 50° launch.",
-            lesson: scaffold(
-                id: "bb-l4.1-range",
-                title: "How distance changes the optimal angle",
-                oneLiner: "There's an angle that gives you maximum range — and it's not 45° in real basketball.",
-                seconds: 90
-            ),
-            scenarioIDs: []
+            title: "The glass",
+            subtitle: "The backboard square is geometry. The bank is the cheat.",
+            lesson: lesson_4_glass,
+            scenarioIDs: ["bb-4-wing-bank", "bb-4-wrong-angle", "bb-4-elbow-bank"],
+            lensReveal: "The square is a target. You'll never un-see it.",
+            levelTypeSeeds: [:]
         ),
         Chapter(
-            id: "bb-ch5-off-axis",
+            id: "bb-ch5-corner",
             sport: .basketball,
             index: 5,
-            title: "Off-balance shots",
-            subtitle: "Fadeaways, floaters, drifters — how elite scorers compensate.",
-            lesson: scaffold(
-                id: "bb-l5.1-lateral-momentum",
-                title: "Why drifting sideways tilts every shot",
-                oneLiner: "The body's momentum at release becomes the ball's momentum at release.",
-                seconds: 120
-            ),
-            scenarioIDs: []
+            title: "The corner three",
+            subtitle: "A line on the floor changed how basketball is played.",
+            lesson: lesson_5_corner,
+            scenarioIDs: ["bb-5-toe-on-line", "bb-5-toe-behind", "bb-5-corner-pocket"],
+            lensReveal: "The corner is the cheat code. You read modern basketball now.",
+            levelTypeSeeds: [:]
         )
     ]
 
-    // MARK: - Lesson 1.1 — "The arc" as a 6-card story
+    // MARK: - Lesson 1 — THE ARC
 
-    private static let lesson_1_1 = LessonContent(
-        id: "bb-l1.1-arc-baseline",
+    private static let lesson_1_arc = LessonContent(
+        id: "bb-l1-arc",
         title: "Why every shot is an arc",
-        oneLiner: "Once the ball leaves your hand, only gravity acts on it.",
-        estimatedReadSeconds: 60,
+        oneLiner: "Once it leaves the hand, only gravity acts on it.",
+        estimatedReadSeconds: 70,
         cards: [
-            // Card 1 — set the hook
             .init(
                 headline: "Every shot is the same shape.",
-                body: "Once the ball leaves your hand, you can't change anything. Air doesn't push it. You can't pull it back. There's only one thing left."
+                body: "Once it leaves the hand, nothing changes it. Air doesn't push it. Nothing pulls it back. One thing remains."
             ),
-            // Card 2 — name the thing
             .init(
                 headline: "Gravity.",
-                body: "A constant pull, straight down. 9.8 m/s². Same on every shot you've ever taken."
+                body: "A constant pull, straight down. 9.8 meters per second per second. Same on every shot ever taken."
             ),
-            // Card 3 — show the shape
             .init(
                 headline: "That's the whole story.",
-                body: "Gravity + your release. Two ingredients. They draw the arc the ball follows. Always the same shape — a parabola."
+                body: "Gravity plus the release. Two ingredients draw the arc."
             ),
-            // Card 4 — the formula reveal (heavier card)
             .init(
                 headline: "And it has an equation.",
-                body: "Plug in your release height, your angle, your speed. Gravity does the rest. The math gives you exactly where the ball will be at any moment.",
+                body: "This is the rule the shot is obeying. Release height, angle, and speed — gravity does the rest.",
                 math: "y(t) = h + v · sin(θ) · t − ½ · g · t²"
             ),
-            // Card 5 — the human takeaway
             .init(
-                headline: "Your hand decides everything.",
-                body: "If two players release identically, their shots are identical. The arc is set the instant you let go."
+                headline: "Hang time is a myth.",
+                body: "Jordan didn't hang. Gravity is constant. What looks like floating is the arc reaching its slowest point, then falling. The eye lies. The math doesn't."
             ),
-            // Card 6 — close the loop
             .init(
-                headline: "Now let's try one.",
-                body: "A free throw. You'll watch the shot, call whether it goes in, and we'll show you why."
+                headline: "The arc is already decided.",
+                body: "The eye just hasn't caught it yet."
             )
         ]
     )
 
-    // MARK: - Scaffold helper
+    // MARK: - Lesson 2 — THE SPIN
 
-    /// Placeholder for chapters whose lessons haven't been authored yet.
-    /// Three cards minimum so the story shape still feels right while
-    /// authoring is pending.
-    private static func scaffold(
-        id: String,
-        title: String,
-        oneLiner: String,
-        seconds: Int
-    ) -> LessonContent {
-        LessonContent(
-            id: id,
-            title: title,
-            oneLiner: oneLiner,
-            estimatedReadSeconds: seconds,
-            cards: [
-                .init(headline: title, body: oneLiner),
-                .init(headline: "Story coming soon.", body: "This chapter's lesson is in authoring."),
-                .init(headline: "Ready to practice?", body: "Tap below to jump into the scenarios when they ship.")
-            ]
-        )
-    }
+    private static let lesson_2_spin = LessonContent(
+        id: "bb-l2-spin",
+        title: "Why some shots stick",
+        oneLiner: "Backspin softens the rim and lifts the ball.",
+        estimatedReadSeconds: 75,
+        cards: [
+            .init(
+                headline: "Why do some shots stick?",
+                body: "That bounce on the rim — back iron, dies, drops. What is that?"
+            ),
+            .init(
+                headline: "Backspin.",
+                body: "When the ball rotates backward, the rim slows it. Energy gets absorbed instead of deflected. The shot finds the basket instead of leaving it."
+            ),
+            .init(
+                headline: "Spin also lifts.",
+                body: "A backspinning ball in flight gets a tiny upward nudge from the air. Soft hands give it just enough lift to land softer at the rim than a dead shot would."
+            ),
+            .init(
+                headline: "The shooter's roll is real.",
+                body: "Not luck. Not the basketball gods. Physics — that great shooters tune for without ever naming."
+            ),
+            .init(
+                headline: "When the announcer says 'good rotation' —",
+                body: "they're describing a measurable thing. You've been hearing it for years. Now you know what they're looking at."
+            ),
+            .init(
+                headline: "No spin. Now spin. Watch."
+            )
+        ]
+    )
+
+    // MARK: - Lesson 3 — THE FADE
+
+    private static let lesson_3_fade = LessonContent(
+        id: "bb-l3-fade",
+        title: "Why fadeaways are hard",
+        oneLiner: "Your body's momentum becomes the ball's momentum.",
+        estimatedReadSeconds: 80,
+        cards: [
+            .init(
+                headline: "Why are fadeaways so hard?",
+                body: "Even the best shooters miss them more than they make them."
+            ),
+            .init(
+                headline: "You're moving backward.",
+                body: "The body has velocity, away from the rim, at the moment of release."
+            ),
+            .init(
+                headline: "The ball inherits it.",
+                body: "Whatever the torso is doing at release, the ball joins. It's now moving slightly backward through the air."
+            ),
+            .init(
+                headline: "So the arm overcompensates.",
+                body: "More force, flatter release, different release point — all while the body is moving wrong."
+            ),
+            .init(
+                headline: "Kobe shot fades at 38%.",
+                body: "League average for contested fades: 29%. The mid-range artisans aren't just good. They're mechanical exceptions."
+            ),
+            .init(
+                headline: "The body decides. The hand follows."
+            )
+        ]
+    )
+
+    // MARK: - Lesson 4 — THE GLASS
+
+    private static let lesson_4_glass = LessonContent(
+        id: "bb-l4-glass",
+        title: "Why the square exists",
+        oneLiner: "The backboard is a geometric cheat code.",
+        estimatedReadSeconds: 70,
+        cards: [
+            .init(
+                headline: "Nobody explains the square.",
+                body: "It's been there since you started watching. Why?"
+            ),
+            .init(
+                headline: "It's an aiming guide.",
+                body: "Not decoration. The corners mark where the ball needs to hit for it to fall in."
+            ),
+            .init(
+                headline: "Banks reflect predictably.",
+                body: "Angle in equals angle out. The same rule as a billiard ball."
+            ),
+            .init(
+                headline: "From the wing, this is huge.",
+                body: "Direct shots from the 45° wing are mathematically hard. Banks turn that into a wide target."
+            ),
+            .init(
+                headline: "Duncan's elbow bank.",
+                body: "From the right elbow, banks were his highest-percentage shot. Not nostalgia. Geometry."
+            ),
+            .init(
+                headline: "Now the angle."
+            )
+        ]
+    )
+
+    // MARK: - Lesson 5 — THE CORNER THREE
+
+    private static let lesson_5_corner = LessonContent(
+        id: "bb-l5-corner",
+        title: "The line that changed basketball",
+        oneLiner: "The corner three is the shortest three on the floor.",
+        estimatedReadSeconds: 85,
+        cards: [
+            .init(
+                headline: "Why does the line bend?",
+                body: "The three-point arc is a perfect circle from center — except in the corners. There it goes straight. Why?"
+            ),
+            .init(
+                headline: "Because the court isn't deep enough.",
+                body: "A perfect arc would put the corner three at 23'9\". But the sideline is only 22 feet from the rim. So the line flattens."
+            ),
+            .init(
+                headline: "That makes the corner shorter.",
+                body: "22 feet vs. 23'9\" everywhere else. The corner is the shortest three on the floor."
+            ),
+            .init(
+                headline: "A shorter shot is a better shot.",
+                body: "Same release, same form, less distance. Higher percentage. More expected points per attempt."
+            ),
+            .init(
+                headline: "Daryl Morey saw the math.",
+                body: "Houston, the mid-2010s. They built an entire offense around corner threes and rim shots. Everyone else followed. The mid-range died."
+            ),
+            .init(
+                headline: "One foot in. One foot out. Watch."
+            )
+        ]
+    )
 }

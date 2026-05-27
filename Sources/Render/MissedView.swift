@@ -8,8 +8,6 @@ struct MissedView: View {
     let onTryAgain: () -> Void
     let onSolution: () -> Void
 
-    @State private var ruleWidth: CGFloat = 24
-
     var body: some View {
         ZStack {
             backgroundTint.ignoresSafeArea()
@@ -35,24 +33,6 @@ struct MissedView: View {
             }
             .padding(.horizontal, Spacing.md)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .onAppear { animateRuleBleed() }
-    }
-
-    private func animateRuleBleed() {
-        guard !UIAccessibility.isReduceMotionEnabled else { return }
-        ruleWidth = 24
-        withAnimation(.easeOut(duration: 0.2)) {
-            ruleWidth = 48
-        }
-        Task {
-            try? await Task.sleep(for: .milliseconds(200))
-            guard !Task.isCancelled else { return }
-            await MainActor.run {
-                withAnimation(.easeIn(duration: 0.3)) {
-                    ruleWidth = 24
-                }
-            }
         }
     }
 
@@ -80,10 +60,12 @@ struct MissedView: View {
             .dynamicTypeSize(.large ... .accessibility1)
     }
 
+    /// v3 audit fix #8: static white rule, no pulse animation.
+    /// Decorative crimson cheapened the sacred miss-state semantic.
     private var rule: some View {
         Rectangle()
-            .fill(Color.arclabCrimson)
-            .frame(width: ruleWidth, height: 1)
+            .fill(Color.arclabBorderGrey)
+            .frame(width: 32, height: 1)
     }
 
     private var subhead: some View {

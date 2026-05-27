@@ -1,27 +1,39 @@
 import SwiftUI
 
-/// Post-splash router. v2.1 flow:
-///   Home → SportPicker → Chapter → [Lesson | Scenario] → Verdict/Reveal → Home
+/// Post-splash router. v3 flow:
+///   Home → (CONTINUE) → ChapterListView → LevelTypePickerView
+///        → [LessonView | PlayView via NextSituationPicker]
+///        → SwishView / MissedView / MasteryGateTakeoverView
+///   Home → (TODAY hero card) → CallPlayView (call mechanic)
+///   Home → (PROFILE row) → ProfileView (sheet)
 ///
-/// First-launch users still see Onboarding before Home. Existing v1
-/// presentation paths (ScenarioContainerView via fullScreenCover) are reused
-/// for the scenario beat — the call-first + reveal beats arrive in steps 3–4
-/// of CONCEPT_v2.1 §13.
+/// First-launch users see V3OnboardingView before Home. SportPicker is
+/// auto-skipped when only one sport is unlocked (current v3 ship state).
 struct PostSplashRouterView: View {
     @Environment(PlayerProfileStore.self) private var profile
 
     @State private var navigationPath = NavigationPath()
+    /// Daily-card path → CallPlayView (call mechanic, single shot).
     @State private var presentedScenario: ScenarioDefinition?
     /// Tracked alongside `presentedScenario` so CallPlayView's reveal beat
     /// can pull phenomenon + explainer from the originating chapter.
     @State private var presentedChapter: Chapter?
+    /// v3 mastery push → PlayView (numpad mechanic, multi-shot loop with
+    /// MasteryService writes and CelebrationView queue). Separate from the
+    /// daily-card path because the two surfaces are intentionally different.
+    @State private var pushedScenario: ScenarioDefinition?
+    /// The chapter + level type the player is currently grinding on. Lets
+    /// PlayView's "NEXT SHOT" handler re-invoke NextSituationPicker for a
+    /// fresh seed in the same level type without popping back to the picker.
+    @State private var pushedChapter: Chapter?
+    @State private var pushedLevelType: LevelTypeID?
     @State private var presentedProfile: Bool = false
 
     var body: some View {
         if profile.profile.hasSeenOnboarding {
             homeStack
         } else {
-            OnboardingView(onBegin: handleOnboardingBegin)
+            OnboardingView(onBegin: {})
                 .transition(.opacity)
         }
     }
@@ -30,14 +42,20 @@ struct PostSplashRouterView: View {
         NavigationStack(path: $navigationPath) {
             HomeView(
                 onPickDailyScenario: handleDailyScenarioTap,
-                onOpenSportPicker: { navigationPath.append(V2Route.sportPicker) },
+                onOpenSportPicker: handleContinueTap,
                 onOpenProfile: { presentedProfile = true }
             )
             .navigationDestination(for: V2Route.self) { route in
                 destination(for: route)
-                    .navigationBarBackButtonHidden(true)
+                    // Hide the nav bar entirely (incl. the default chevron),
+                    // but DON'T use .navigationBarBackButtonHidden(true) —
+                    // that kills the native left-edge back-swipe gesture too.
+                    // Hiding the bar via .toolbar leaves the interactive
+                    // pop-gesture recognizer alive on iOS.
+                    .toolbar(.hidden, for: .navigationBar)
             }
         }
+        // Daily-card path: CallPlayView (call mechanic, one-shot).
         .fullScreenCover(item: $presentedScenario) { scenario in
             CallPlayView(
                 scenario: scenario,
@@ -46,6 +64,18 @@ struct PostSplashRouterView: View {
                     presentedScenario = nil
                     presentedChapter = nil
                 }
+            )
+        }
+        // v3 mastery push: PlayView (numpad mechanic). On close, if the
+        // player is still inside a level-type push (didn't bail to the
+        // picker), auto-advance to the next seed via NextSituationPicker.
+        // That makes "NEXT SHOT" inside PlayView feel like a continuous
+        // session instead of a pop-back-to-picker bounce.
+        .fullScreenCover(item: $pushedScenario) { scenario in
+            PlayView(
+                scenario: scenario,
+                onClose: handlePlayViewBail,        // user-initiated bail → picker
+                onRequestNext: handlePlayViewNext   // NEXT SHOT → fresh seed in same push
             )
         }
         .sheet(isPresented: $presentedProfile) {
@@ -60,22 +90,31 @@ struct PostSplashRouterView: View {
         switch route {
         case .sportPicker:
             SportPickerView(onSelect: { sport in
-                // v2.1: sport tap routes to the first chapter of that sport.
-                // Multi-sport picker arrives once soccer ships post-launch.
-                if let firstChapter = chapters(for: sport).first {
-                    navigationPath.append(V2Route.chapter(firstChapter.id))
-                }
+                navigationPath.append(V2Route.chapterList(sport))
             })
+
+        case .chapterList(let sport):
+            ChapterListView(
+                sport: sport,
+                chapters: chapters(for: sport),
+                onSelectChapter: { chapter in
+                    navigationPath.append(V2Route.chapter(chapter.id))
+                }
+            )
 
         case .chapter(let chapterId):
             if let chapter = chapter(withId: chapterId) {
-                ChapterView(
+                LevelTypePickerView(
                     chapter: chapter,
+                    onSelectLevelType: { lt in
+                        startLevelTypePush(chapter: chapter, levelType: lt)
+                    },
                     onOpenLesson: { lesson in
                         navigationPath.append(V2Route.lesson(lesson.id, chapterId: chapter.id))
                     },
-                    onOpenScenario: { scenarioId in
-                        presentScenario(id: scenarioId, in: chapter)
+                    onOpenFamousMoments: {
+                        // v3.1 — Famous Moments replay flow. v3 ship: no-op
+                        // until the dedicated FamousMomentsView lands.
                     }
                 )
             } else {
@@ -102,24 +141,111 @@ struct PostSplashRouterView: View {
 
     // MARK: - Actions
 
-    private func handleOnboardingBegin() {
-        // OnboardingView mutated hasSeenOnboarding; @Observable re-evaluates body.
+    /// When only one sport is unlocked (v3 ship state), skip past the
+    /// SportPicker straight to that sport's ChapterListView — saves the
+    /// user a redundant tap on a list-of-one. Re-introduces the picker as
+    /// soon as a second sport unlocks.
+    private func handleContinueTap() {
+        let unlockedSports = Sport.allCases.filter(\.isUnlocked)
+        if unlockedSports.count == 1, let only = unlockedSports.first {
+            navigationPath.append(V2Route.chapterList(only))
+        } else {
+            navigationPath.append(V2Route.sportPicker)
+        }
     }
 
     private func handleDailyScenarioTap() {
-        // Daily Scenario pipeline (server-picked daily card + push notify)
-        // isn't wired yet — until it is, route to the canonical free throw
-        // and attach its owning chapter so the reveal beat has content.
-        let chapter = BasketballCurriculum.chapters.first(where: {
-            $0.scenarioIDs.contains("bb-freethrow-001")
-        })
-        presentScenario(id: "bb-freethrow-001", in: chapter)
+        // v3 §HomeView — daily card now picks player-relevant scenario via
+        // DailyScenarioPicker (review-due → active level type → opener),
+        // deterministic per-day so the tap delivers exactly what the hero
+        // card promised. Server-picked daily + push notify still TBD for
+        // a later milestone; the picker is the client-side stand-in.
+        let pick = DailyScenarioPicker.pick(
+            for: profile.profile,
+            chapters: BasketballCurriculum.chapters
+        )
+        let chapter = BasketballCurriculum.chapters.first(where: { $0.id == pick.chapterId })
+        presentScenario(id: pick.scenarioId, in: chapter)
     }
 
     private func presentScenario(id: String, in chapter: Chapter?) {
         guard let scenario = try? ScenarioLoader.load(ScenarioID(id)) else { return }
         presentedChapter = chapter
         presentedScenario = scenario
+    }
+
+    /// User explicitly bailed (CLOSE chip or swipe back). Pop to picker.
+    private func handlePlayViewBail() {
+        pushedScenario = nil
+        pushedChapter = nil
+        pushedLevelType = nil
+    }
+
+    /// User tapped NEXT SHOT after a v3 outcome (or finished celebrations).
+    /// Advance to a fresh seed in the same level type — or, if the player
+    /// just mastered the current type, promote them to the next unlocked
+    /// type so progression FEELS like progression. Pop to picker only when
+    /// no further levels exist in the chapter (the celebration screens
+    /// already handled the "chapter mastered" beat).
+    private func handlePlayViewNext() {
+        guard let chapter = pushedChapter, let lt = pushedLevelType else {
+            handlePlayViewBail()
+            return
+        }
+        // Did this push just clear mastery on the active level type?
+        let key = MasteryService.key(chapterId: chapter.id, levelType: lt)
+        let activeStatus = profile.profile.levelTypeMasteries[key]?.status
+        let nextLevelType: LevelTypeID? = (activeStatus == .mastered)
+            ? nextUnlockedLevelType(after: lt, in: chapter)
+            : lt
+        pushedScenario = nil
+        guard let target = nextLevelType else {
+            // Chapter is fully mastered — drop to picker so the player can
+            // pick another chapter (or see the chapter-mastery celebration
+            // queued from PlayView's outcome write).
+            handlePlayViewBail()
+            return
+        }
+        // Re-pick on the next runloop tick so the fullScreenCover finishes
+        // its dismiss animation before we present the next seed. SwiftUI
+        // rejects simultaneous present-and-dismiss on the same binding.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+            startLevelTypePush(chapter: chapter, levelType: target)
+        }
+    }
+
+    /// Next earth-chapter level type after `current` in A→B→C→D order whose
+    /// prerequisites are satisfied. Returns nil if `current` was the last.
+    private func nextUnlockedLevelType(after current: LevelTypeID, in chapter: Chapter) -> LevelTypeID? {
+        let order = LevelTypeID.earthChapterTypes
+        guard let idx = order.firstIndex(of: current), idx + 1 < order.count else { return nil }
+        return order[idx + 1]
+    }
+
+    /// v3 §3.2 — start a mastery push on a level type. Picks a situation
+    /// via NextSituationPicker and presents it in PlayView (the numpad
+    /// mechanic, NOT CallPlayView's one-shot call surface). PlayView's
+    /// onClose re-invokes this same function so NEXT SHOT serves a fresh
+    /// seed without bouncing the player back to the picker.
+    private func startLevelTypePush(chapter: Chapter, levelType: LevelTypeID) {
+        let seedPool: [LevelTypeID: [String]] = Dictionary(
+            uniqueKeysWithValues: LevelTypeID.earthChapterTypes.map { lt in
+                (lt, chapter.seeds(for: lt))
+            }
+        )
+        var rng = SystemRandomNumberGenerator()
+        guard let pick = NextSituationPicker.nextPick(
+            chapterId: chapter.id,
+            activeLevelType: levelType,
+            seedPool: seedPool,
+            masteries: profile.profile.levelTypeMasteries,
+            rng: &rng
+        ) else { return }
+        guard let scenario = try? ScenarioLoader.load(ScenarioID(pick.situationId)) else { return }
+        // Remember the active push so handlePlayViewClose can auto-advance.
+        pushedChapter = chapter
+        pushedLevelType = levelType
+        pushedScenario = scenario
     }
 
     // MARK: - Curriculum lookup
@@ -151,6 +277,7 @@ struct PostSplashRouterView: View {
 /// Navigation routes for v2.1.
 enum V2Route: Hashable {
     case sportPicker
+    case chapterList(Sport)              // shows all chapters for a sport
     case chapter(String)                 // chapterId
     case lesson(String, chapterId: String)  // lessonId
 }

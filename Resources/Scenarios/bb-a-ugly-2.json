@@ -1,0 +1,329 @@
+{
+  "$comment": "v3 Level Type A seed: UGLY NUMBERS — TWO.. v derived for target θ=53°.",
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-a-ugly-2",
+  "meta": {
+    "title": "UGLY NUMBERS — TWO.",
+    "subtitle": "CH 1 — LEVEL A · UGLY 2",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": [
+      "arc",
+      "find-theta",
+      "level-a"
+    ],
+    "authorIntent": "v3 Level Type A seed. d=6.18, h_r=2.13, v=8.42; θ ≈ 53°. HARD bucket. v computed from y(t)=h_h with target θ.",
+    "levelType": "A_FIND_THETA",
+    "chapterId": "bb-ch1-arc",
+    "difficultyBucket": "HARD"
+  },
+  "unknowns": [
+    "theta"
+  ],
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ that lands the ball through the hoop. Speed is given.",
+    "variables": [
+      {
+        "symbol": "d",
+        "value": 6.18,
+        "unit": "m",
+        "label": "DIST"
+      },
+      {
+        "symbol": "h_h",
+        "value": 3.05,
+        "unit": "m",
+        "label": "HOOP"
+      },
+      {
+        "symbol": "h_r",
+        "value": 2.13,
+        "unit": "m",
+        "label": "REL H"
+      },
+      {
+        "symbol": "v",
+        "value": 8.42,
+        "unit": "m/s",
+        "label": "SPEED"
+      },
+      {
+        "symbol": "g",
+        "value": 9.8,
+        "unit": "m/s²",
+        "label": "G"
+      }
+    ]
+  },
+  "input": {
+    "mode": "NUMPAD_SINGLE_THETA",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [
+        0.0,
+        2.13
+      ],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [
+          6.18,
+          3.05
+        ],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [
+            6.359999999999999,
+            3.05
+          ],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 7.68,
+        "yMax": 6.63
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Short. The angle never got it up.",
+          "2": "Still short. Raise the angle.",
+          "3+": "Short again. Angle below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front rim. The arc was a touch flat.",
+          "2": "Still front rim. Lift the angle.",
+          "3+": "Front rim again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back rim. A touch too high.",
+          "2": "Still back rim. Ease the angle down.",
+          "3+": "Back rim again. Lower the angle."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Overshot. The angle let it sail.",
+          "2": "Still overshooting. Ease the angle down.",
+          "3+": "Far overshoot. Angle well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. Check the angle.",
+          "2": "Air ball again. Aim through the hoop.",
+          "3+": "Still air ball. Check the angle."
+        }
+      }
+    ],
+    "ghostArc": {
+      "source": "authored",
+      "answer": {
+        "theta": 53,
+        "v": 8.42
+      },
+      "description": "θ=53° with v=8.42 m/s lands the ball through the hoop."
+    }
+  },
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Speed is given. The angle has to do the work."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, one unknown:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nReaches the rim when x = d and y = h_h. v is fixed."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. With v=8.42, d=6.18, h_r=2.13, h_h=3.05, solve for θ. Try near 53°."
+    }
+  ],
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 6.18, h_h = 3.05, h_r = 2.13, v = 8.42, g = 9.8.",
+      "t = d / (v·cos θ).",
+      "Solve y(t) = h_h for θ → θ ≈ 53°."
+    ]
+  },
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        {
+          "id": "bb_player_shoot_motion",
+          "duration": 0.35,
+          "trigger": "submit"
+        },
+        {
+          "id": "bb_ball_in_flight",
+          "driver": "simulation"
+        }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH": "bb_swish_clean_glow",
+          "GLASS": "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+  "voice": {
+    "intro": {
+      "headline": "UGLY NUMBERS — TWO.",
+      "subhead": "Calculator on. Pick the angle."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH": "FOUND THE ANGLE",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "CAUGHT THE RIM"
+      },
+      "flavorCaption": {
+        "SWISH": "CLEAN — NO RIM",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "ROLLED IN"
+      },
+      "subheadByFlavor": {
+        "SWISH": "Clean shot. The angle did it.",
+        "GLASS": "Used the backboard. Smart.",
+        "RIM_DROP": "Lucky bounce. The angle was close."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "MISSED.",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front rim. The angle was too low.",
+        "BACK_RIM": "Back rim. The angle was too high.",
+        "SHORT": "Short. Speed is fixed — raise the angle.",
+        "OVERSHOOT": "Overshot. Lower the angle.",
+        "AIRBALL": "Air ball. Check the angle."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 53°.",
+        "BACK_RIM": "Geometry: θ near 53°.",
+        "SHORT": "Geometry: θ near 53°.",
+        "OVERSHOOT": "Geometry: θ near 53°.",
+        "AIRBALL": "Geometry: θ near 53°."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+  "smokeTest": {
+    "answer": {
+      "theta": 53,
+      "v": 8.42
+    },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

@@ -1,0 +1,329 @@
+{
+  "$comment": "v3 Level Type C seed: PULL-UP DEEP.. d derived from θ, v, h_r descent intersection with h_h.",
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-c-pull-up",
+  "meta": {
+    "title": "PULL-UP DEEP.",
+    "subtitle": "CH 1 — LEVEL C · PULL UP",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": [
+      "arc",
+      "find-d",
+      "level-c"
+    ],
+    "authorIntent": "v3 Level Type C seed. θ=53°, v=9.0, h_r=2.1; player computes d ≈ 7.15. MEDIUM bucket.",
+    "levelType": "C_FIND_D",
+    "chapterId": "bb-ch1-arc",
+    "difficultyBucket": "MEDIUM"
+  },
+  "unknowns": [
+    "d"
+  ],
+  "situation": {
+    "outcome": "Predict where the ball lands at hoop height.",
+    "questionRevealed": "Find the distance d where the ball crosses hoop height on the descent.",
+    "variables": [
+      {
+        "symbol": "h_h",
+        "value": 3.05,
+        "unit": "m",
+        "label": "HOOP"
+      },
+      {
+        "symbol": "h_r",
+        "value": 2.1,
+        "unit": "m",
+        "label": "REL H"
+      },
+      {
+        "symbol": "theta",
+        "value": 53.0,
+        "unit": "°",
+        "label": "ANGLE"
+      },
+      {
+        "symbol": "v",
+        "value": 9.0,
+        "unit": "m/s",
+        "label": "SPEED"
+      },
+      {
+        "symbol": "g",
+        "value": 9.8,
+        "unit": "m/s²",
+        "label": "G"
+      }
+    ]
+  },
+  "input": {
+    "mode": "NUMPAD_SINGLE_D",
+    "fields": [
+      {
+        "name": "d",
+        "label": "DIST D",
+        "unit": "m",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ PICK"
+  },
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [
+        0.0,
+        2.1
+      ],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [
+          7.15,
+          3.05
+        ],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [
+            7.33,
+            3.05
+          ],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 8.65,
+        "yMax": 6.6
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Predicted too short. The arc carries further.",
+          "2": "Still short. Look at the speed.",
+          "3+": "Short again. Reconsider."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Close — front rim. The spot was a touch short.",
+          "2": "Still front rim. Push the spot back.",
+          "3+": "Front rim again."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Close — back rim. The spot was a touch long.",
+          "2": "Still back rim. Pull the spot in.",
+          "3+": "Back rim again."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Overshot the spot.",
+          "2": "Still overshooting. Pull the spot in.",
+          "3+": "Far overshoot."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Off the line. Check the spot.",
+          "2": "Still off. Look at the trajectory.",
+          "3+": "Check angle and speed."
+        }
+      }
+    ],
+    "ghostArc": {
+      "source": "authored",
+      "answer": {
+        "theta": 53.0,
+        "v": 9.0
+      },
+      "description": "θ=53°, v=9.0 — ball crosses h_h at d ≈ 7.15m on descent."
+    }
+  },
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Both angle and speed are given. Find where the ball reaches hoop height on the way down."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Solve y(t) = h_h for t (two solutions — pick the larger, the descent). Then x = v·cos(θ)·t."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "With θ=53°, v=9.0, h_r=2.1, h_h=3.05, g=9.8 — solve y(t)=h_h for t, then x(t). Answer is near 7.15m."
+    }
+  ],
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: θ = 53°, v = 9.0, h_r = 2.1, h_h = 3.05, g = 9.8.",
+      "Solve y(t) = h_h for t — take the larger root (descent).",
+      "x(t) at that t gives d ≈ 7.15 m."
+    ]
+  },
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        {
+          "id": "bb_player_shoot_motion",
+          "duration": 0.35,
+          "trigger": "submit"
+        },
+        {
+          "id": "bb_ball_in_flight",
+          "driver": "simulation"
+        }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH": "bb_swish_clean_glow",
+          "GLASS": "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+  "voice": {
+    "intro": {
+      "headline": "PULL-UP DEEP.",
+      "subhead": "Deep pull-up. Where does it land?"
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH": "READ IT RIGHT",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "CAUGHT THE RIM"
+      },
+      "flavorCaption": {
+        "SWISH": "SPOT CALLED",
+        "GLASS": "OFF THE GLASS",
+        "RIM_DROP": "ROLLED IN"
+      },
+      "subheadByFlavor": {
+        "SWISH": "Saw it before it happened.",
+        "GLASS": "Geometry put it through the square.",
+        "RIM_DROP": "Iron caught the spot."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "MISSED.",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front rim. Spot was short.",
+        "BACK_RIM": "Back rim. Spot was long.",
+        "SHORT": "The arc carried further than predicted.",
+        "OVERSHOOT": "The arc fell short of where it was called.",
+        "AIRBALL": "Off the line. Recheck the math."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: d near 7.15.",
+        "BACK_RIM": "Geometry: d near 7.15.",
+        "SHORT": "Geometry: d near 7.15.",
+        "OVERSHOOT": "Geometry: d near 7.15.",
+        "AIRBALL": "Geometry: d near 7.15."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ PICK"
+  },
+  "smokeTest": {
+    "answer": {
+      "theta": 53.0,
+      "v": 9.0
+    },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}

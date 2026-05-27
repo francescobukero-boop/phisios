@@ -1,0 +1,294 @@
+{
+  "$comment": "Ch 3 — THE FADE, scenario 1 (stationary control case). Authored from SCENARIO_SPECS_v1.md + SCENARIO_VOICE_v1.md (locked 2026-05-21). Schema mirrors bb-1-baseline.json. Establishes the reference release the next two fade scenarios will perturb. The fade is represented by increasing the effective distance (engine has no body-momentum model).",
+
+  "schemaVersion": "1.1.0",
+  "scenarioId": "bb-3-standstill",
+
+  "meta": {
+    "title": "FEET PLANTED.",
+    "subtitle": "CH 3 — THE FADE, CONTROL CASE",
+    "topic": "projectile_motion",
+    "type": "SCENARIO",
+    "difficulty": 1,
+    "rankTier": "ROOKIE",
+    "season": null,
+    "tags": ["fade", "projectile", "no-wind", "midrange"],
+    "authorIntent": "Control case for the fade chapter. d=5.0, h_r=2.3, h_h=3.05. Textbook answer θ=55°, v=7.63 m/s. Verification: t = 5.0 / (7.63·cos 55°) = 1.142 s; y(1.142) = 2.3 + 7.63·sin(55°)·1.142 − ½·9.8·1.142² = 3.046 m — matches h_h (err 0.004 m). Pedagogical purpose: establish the d=5.0/h_r=2.3 reference that the fade scenarios perturb. Body is stationary; the release does all the work."
+  },
+
+  "situation": {
+    "outcome": "Make the shot.",
+    "questionRevealed": "Find an angle θ and velocity v that lands the ball through the hoop.",
+    "variables": [
+      { "symbol": "d",   "value": 5.0,  "unit": "m",    "label": "DIST" },
+      { "symbol": "h_h", "value": 3.05, "unit": "m",    "label": "HOOP" },
+      { "symbol": "h_r", "value": 2.3,  "unit": "m",    "label": "REL H" },
+      { "symbol": "g",   "value": 9.8,  "unit": "m/s²", "label": "G" }
+    ]
+  },
+
+  "input": {
+    "mode": "NUMPAD_DUAL",
+    "fields": [
+      {
+        "name": "theta",
+        "label": "ANGLE θ",
+        "unit": "°",
+        "min": 0,
+        "max": 90,
+        "decimals": 1,
+        "placeholder": null
+      },
+      {
+        "name": "v",
+        "label": "VELOCITY V",
+        "unit": "m/s",
+        "min": 0,
+        "max": 20,
+        "decimals": 2,
+        "placeholder": null
+      }
+    ],
+    "submitLabel": "↑ SHOOT"
+  },
+
+  "simulation": {
+    "module": "PROJECTILE_2D",
+    "moduleVersion": "1.0.0",
+    "params": {
+      "gravity": 9.8,
+      "airResistance": 0.0,
+      "releasePosition": [0.0, 2.3],
+      "ball": {
+        "radius": 0.12,
+        "mass": 0.625
+      },
+      "target": {
+        "kind": "HOOP",
+        "center": [5.0, 3.05],
+        "innerRadius": 0.225,
+        "rimThickness": 0.02,
+        "backboard": {
+          "position": [5.18, 3.05],
+          "width": 0.05,
+          "height": 1.05
+        }
+      },
+      "world": {
+        "floorY": 0.0,
+        "xMin": -0.5,
+        "xMax": 6.5,
+        "yMax": 6.5
+      },
+      "integrator": "SEMI_IMPLICIT_EULER",
+      "fixedDtSeconds": 0.00833333
+    }
+  },
+
+  "outcome": {
+    "successPredicate": "BALL_INTO_HOOP",
+    "scoreFunction": "EFFICIENCY_DECAY",
+    "baseScore": 100,
+
+    "successFlavors": [
+      {
+        "id": "SWISH",
+        "when": "rimContacts == 0 && ball.passedThroughHoopCenter",
+        "scoreMultiplier": 1.0
+      },
+      {
+        "id": "GLASS",
+        "when": "rimContacts == 0 && backboardContacts >= 1",
+        "scoreMultiplier": 0.9
+      },
+      {
+        "id": "RIM_DROP",
+        "when": "rimContacts >= 1",
+        "scoreMultiplier": 0.75
+      }
+    ],
+
+    "missCategories": [
+      {
+        "id": "SHORT",
+        "when": "ball.maxHeight < hoop.center.y",
+        "subheadVariants": {
+          "1": "Came up short. The arms had to do all of it.",
+          "2": "Still short. Push the velocity.",
+          "3+": "Short again. Power well below threshold."
+        }
+      },
+      {
+        "id": "FRONT_RIM",
+        "when": "firstRimContact.x < hoop.center.x - 0.05",
+        "subheadVariants": {
+          "1": "Front iron. The release was short of the lip.",
+          "2": "Still front iron. Lift the arc.",
+          "3+": "Front iron again. Push the angle higher."
+        }
+      },
+      {
+        "id": "BACK_RIM",
+        "when": "firstRimContact.x > hoop.center.x + 0.05",
+        "subheadVariants": {
+          "1": "Back iron. Too much pace for a still body.",
+          "2": "Still back iron. Cut the velocity.",
+          "3+": "Back iron again. Less power."
+        }
+      },
+      {
+        "id": "OVERSHOOT",
+        "when": "ball.exitX > hoop.center.x + 0.5",
+        "subheadVariants": {
+          "1": "Long. Power outran the geometry.",
+          "2": "Still long. Cut the velocity.",
+          "3+": "Far overshoot. Power well above threshold."
+        }
+      },
+      {
+        "id": "AIRBALL",
+        "when": "rimContacts == 0 && backboardContacts == 0 && !ball.passedThroughHoopCenter",
+        "subheadVariants": {
+          "1": "Air ball. No body to blame — the line drifted.",
+          "2": "Air ball again. Aim for the rim.",
+          "3+": "Still air ball. Check angle and velocity."
+        }
+      }
+    ],
+
+    "ghostArc": {
+      "source": "authored",
+      "answer": { "theta": 55.0, "v": 7.63 },
+      "description": "Textbook answer θ=55°, v=7.63 m/s. Clean stationary midrange — the reference shape the next two fade scenarios pull away from."
+    }
+  },
+
+  "hints": [
+    {
+      "tier": 1,
+      "costPct": 10,
+      "body": "Standing still — pure projectile motion. Solve for angle and velocity."
+    },
+    {
+      "tier": 2,
+      "costPct": 25,
+      "body": "Two equations, two unknowns:\n  x(t) = v·cos(θ)·t\n  y(t) = h_r + v·sin(θ)·t − ½·g·t²\nBall at the rim when x = d, y = h_h."
+    },
+    {
+      "tier": 3,
+      "costPct": 50,
+      "body": "Substitute t = d/(v·cos θ) into y. Try θ near 55° and solve for v."
+    }
+  ],
+
+  "solution": {
+    "equations": [
+      "x(t) = v·cos(θ)·t",
+      "y(t) = h_r + v·sin(θ)·t − ½·g·t²"
+    ],
+    "workedSteps": [
+      "Given: d = 5.0, h_h = 3.05, h_r = 2.3, g = 9.8.",
+      "At θ = 55°: t = d / (v·cos(55°)).",
+      "Solve y(t) = h_h for v → v ≈ 7.63 m/s."
+    ]
+  },
+
+  "animations": {
+    "idle": {
+      "id": "bb_player_dribble",
+      "loop": true,
+      "framesPerSecond": 12,
+      "anchor": "releasePosition"
+    },
+    "action": {
+      "id": "bb_shoot_then_arc",
+      "driver": "simulation",
+      "phases": [
+        { "id": "bb_player_shoot_motion", "duration": 0.35, "trigger": "submit" },
+        { "id": "bb_ball_in_flight",      "driver": "simulation" }
+      ]
+    },
+    "outcome": {
+      "success": {
+        "byFlavor": {
+          "SWISH":    "bb_swish_clean_glow",
+          "GLASS":    "bb_swish_backboard",
+          "RIM_DROP": "bb_swish_rim_roll"
+        },
+        "default": "bb_swish_clean_glow"
+      },
+      "miss": {
+        "id": "bb_miss_freeze_with_ghost_arc",
+        "tintBackgroundHex": "#0C0404",
+        "tintBackgroundHexAirball": "#180404",
+        "showGhostArc": true,
+        "showFailedArc": true,
+        "failedArcColor": "#FF3037",
+        "ghostArcColor": "#FFFFFF"
+      }
+    }
+  },
+
+  "voice": {
+    "intro": {
+      "headline": "FEET PLANTED.",
+      "subhead": "Stationary release. The body adds nothing to the ball."
+    },
+    "success": {
+      "headlineByFlavor": {
+        "SWISH":    "STRAIGHT UP",
+        "GLASS":    "USED THE BOARD",
+        "RIM_DROP": "FOUND THE FALL"
+      },
+      "flavorCaption": {
+        "SWISH":    "BODY QUIET",
+        "GLASS":    "GLASS, CLEAN",
+        "RIM_DROP": "RIM FORGAVE IT"
+      },
+      "subheadByFlavor": {
+        "SWISH":    "No drift. The release does all the work.",
+        "GLASS":    "Square handled it cleanly.",
+        "RIM_DROP": "Sat on the iron and dropped."
+      },
+      "statLabels": {
+        "theta": "ANGLE",
+        "v": "SPEED",
+        "score": "PTS"
+      }
+    },
+    "miss": {
+      "headline": "MISSED.",
+      "attemptLabel": "ATTEMPT {n}",
+      "retryLabel": "TRY AGAIN",
+      "diagnosticByCategory": {
+        "FRONT_RIM": "Front iron. The release was short of the lip.",
+        "BACK_RIM":  "Back iron. Too much pace for a still body.",
+        "SHORT":     "Came up short. The arms had to do all of it.",
+        "OVERSHOOT": "Long. Power outran the geometry.",
+        "AIRBALL":   "Air ball. No body to blame — the line drifted."
+      },
+      "bracketHintByCategory": {
+        "FRONT_RIM": "Geometry: θ near 55°, push v near 7.6.",
+        "BACK_RIM":  "Geometry: θ near 55°, cut v by ~0.4.",
+        "SHORT":     "Geometry: θ near 55°, push v near 7.6.",
+        "OVERSHOOT": "Geometry: θ near 55°, cut v by ~0.8.",
+        "AIRBALL":   "Geometry: θ near 55°, v near 7.6."
+      },
+      "afterAllHintsCopy": "All hints revealed. The math is on the table."
+    },
+    "hintBottomCopy": "Each hint trims the score.",
+    "hintCta": "REVEAL (−{cost}%)",
+    "solutionLabel": "SOLUTION",
+    "nextLabel": "NEXT SHOT →",
+    "replayLabel": "REPLAY",
+    "tryThisAnswerLabel": "TRY THIS ANSWER →",
+    "closeLabel": "✕ CLOSE",
+    "shootLabel": "↑ SHOOT"
+  },
+
+  "smokeTest": {
+    "answer": { "theta": 55.0, "v": 7.63 },
+    "expectedOutcome": "success",
+    "expectedFlavor": "SWISH"
+  }
+}
