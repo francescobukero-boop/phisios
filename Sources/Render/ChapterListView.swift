@@ -59,8 +59,10 @@ struct ChapterListView: View {
             ForEach(chapters) { chapter in
                 ChapterRow(
                     chapter: chapter,
-                    isUnlocked: chapter.isShippableInV3,
-                    onTap: { if chapter.isShippableInV3 { onSelectChapter(chapter) } }
+                    isUnlocked: isChapterUnlocked(chapter),
+                    onTap: {
+                        if isChapterUnlocked(chapter) { onSelectChapter(chapter) }
+                    }
                 )
                 if chapter.id != chapters.last?.id {
                     Rectangle()
@@ -68,6 +70,21 @@ struct ChapterListView: View {
                         .frame(height: 1)
                 }
             }
+        }
+    }
+
+    /// Sport-aware chapter unlock check. Basketball uses v3 mastery state
+    /// (isShippableInV3 — all 4 level types must have seed pools). Archery
+    /// doesn't use level types yet, so a chapter is unlocked iff it has at
+    /// least one scenario authored (Ch 1-2 ship in v2.2; Ch 3-5 are stubs).
+    private func isChapterUnlocked(_ chapter: Chapter) -> Bool {
+        switch chapter.sport {
+        case .basketball:
+            return chapter.isShippableInV3
+        case .archery:
+            return !chapter.scenarioIDs.isEmpty
+        case .soccer, .pool, .f1:
+            return false
         }
     }
 }

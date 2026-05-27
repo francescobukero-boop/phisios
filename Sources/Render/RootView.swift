@@ -96,6 +96,13 @@ struct RootView: View {
                 chapters: BasketballCurriculum.chapters,
                 onSelectChapter: { _ in }
             )
+        case "chapterlist-archery":
+            // v2.2 diagnostic: chapter list for Archery (Parham's curriculum).
+            ChapterListView(
+                sport: .archery,
+                chapters: ArcheryCurriculum.chapters,
+                onSelectChapter: { _ in }
+            )
         case "mastery-a":
             // v3 diagnostic: takeover after Level Type A clears.
             CelebrationView(celebration: .levelType(.findTheta), onTap: {})

@@ -27,6 +27,11 @@ struct PostSplashRouterView: View {
     /// fresh seed in the same level type without popping back to the picker.
     @State private var pushedChapter: Chapter?
     @State private var pushedLevelType: LevelTypeID?
+    /// Archery push: ArcheryScenario goes through its own play surface
+    /// (ArcheryCallPlayView, call mechanic — totally separate from the
+    /// basketball numpad PlayView).
+    @State private var pushedArcheryScenario: ArcheryScenario?
+    @State private var pushedArcheryChapter: Chapter?
     @State private var presentedProfile: Bool = false
 
     var body: some View {
@@ -78,6 +83,18 @@ struct PostSplashRouterView: View {
                 onRequestNext: handlePlayViewNext   // NEXT SHOT → fresh seed in same push
             )
         }
+        // Archery push: ArcheryCallPlayView (call mechanic — Parham's v2.2
+        // surface). One scenario at a time, no auto-advance queue yet.
+        .fullScreenCover(item: $pushedArcheryScenario) { scenario in
+            ArcheryCallPlayView(
+                scenario: scenario,
+                chapter: pushedArcheryChapter,
+                onClose: {
+                    pushedArcheryScenario = nil
+                    pushedArcheryChapter = nil
+                }
+            )
+        }
         .sheet(isPresented: $presentedProfile) {
             ProfileView()
         }
@@ -104,19 +121,38 @@ struct PostSplashRouterView: View {
 
         case .chapter(let chapterId):
             if let chapter = chapter(withId: chapterId) {
-                LevelTypePickerView(
-                    chapter: chapter,
-                    onSelectLevelType: { lt in
-                        startLevelTypePush(chapter: chapter, levelType: lt)
-                    },
-                    onOpenLesson: { lesson in
-                        navigationPath.append(V2Route.lesson(lesson.id, chapterId: chapter.id))
-                    },
-                    onOpenFamousMoments: {
-                        // v3.1 — Famous Moments replay flow. v3 ship: no-op
-                        // until the dedicated FamousMomentsView lands.
-                    }
-                )
+                switch chapter.sport {
+                case .basketball:
+                    LevelTypePickerView(
+                        chapter: chapter,
+                        onSelectLevelType: { lt in
+                            startLevelTypePush(chapter: chapter, levelType: lt)
+                        },
+                        onOpenLesson: { lesson in
+                            navigationPath.append(V2Route.lesson(lesson.id, chapterId: chapter.id))
+                        },
+                        onOpenFamousMoments: {
+                            // v3.1 — Famous Moments replay flow. v3 ship: no-op
+                            // until the dedicated FamousMomentsView lands.
+                        }
+                    )
+                case .archery:
+                    // Archery uses Parham's v2.2 ChapterView (lesson row +
+                    // scenario rows). Scenario taps present ArcheryCallPlayView.
+                    ChapterView(
+                        chapter: chapter,
+                        onOpenLesson: { lesson in
+                            navigationPath.append(V2Route.lesson(lesson.id, chapterId: chapter.id))
+                        },
+                        onOpenScenario: { scenarioId in
+                            startArcheryPush(chapter: chapter, scenarioId: scenarioId)
+                        }
+                    )
+                case .soccer, .pool, .f1:
+                    // Locked sports shouldn't reach here, but render an
+                    // honest "coming soon" if they do (vs cryptic crash).
+                    placeholder("\(chapter.sport.displayName) is coming soon.")
+                }
             } else {
                 placeholder("Chapter not found.")
             }
@@ -172,6 +208,18 @@ struct PostSplashRouterView: View {
         guard let scenario = try? ScenarioLoader.load(ScenarioID(id)) else { return }
         presentedChapter = chapter
         presentedScenario = scenario
+    }
+
+    /// Archery scenario tap → look up in catalog → present in
+    /// ArcheryCallPlayView. Single scenario per push (no auto-advance yet
+    /// — Parham hasn't authored that progression).
+    private func startArcheryPush(chapter: Chapter, scenarioId: String) {
+        guard let scenario = ArcheryScenarioCatalog.scenario(for: scenarioId) else {
+            print("[arclab/router] archery scenario not in catalog: \(scenarioId)")
+            return
+        }
+        pushedArcheryChapter = chapter
+        pushedArcheryScenario = scenario
     }
 
     /// User explicitly bailed (CLOSE chip or swipe back). Pop to picker.
@@ -251,16 +299,20 @@ struct PostSplashRouterView: View {
     // MARK: - Curriculum lookup
 
     private func chapters(for sport: Sport) -> [Chapter] {
-        switch sport {
-        case .basketball:
-            return BasketballCurriculum.chapters
-        default:
-            return []
-        }
+        sport.chapters  // each Sport returns its own curriculum
     }
 
+    /// Search every sport's curriculum for a chapter id. Used by the route
+    /// dispatcher when a deep-link push only carries the chapter id, not
+    /// the sport. Both basketball (JSON-backed) and archery (catalog-backed)
+    /// chapters live in the same id space.
     private func chapter(withId id: String) -> Chapter? {
-        BasketballCurriculum.chapters.first { $0.id == id }
+        for sport in Sport.allCases where sport.isUnlocked {
+            if let match = sport.chapters.first(where: { $0.id == id }) {
+                return match
+            }
+        }
+        return nil
     }
 
     // MARK: - Placeholders
