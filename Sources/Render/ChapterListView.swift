@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// Chapter list — the bridge between SportPicker and LevelTypePickerView.
 /// Shows every chapter in a sport as a row; tapping a shippable chapter
@@ -12,24 +13,56 @@ struct ChapterListView: View {
     let onSelectChapter: (Chapter) -> Void
 
     var body: some View {
-        AdaptiveContentContainer(maxWidth: 640) {
-            VStack(spacing: 0) {
-                topBar
+        // Real status-bar height from the window, read once on the main actor.
+        let windowTopInset = keyWindowTopInset
+        return GeometryReader { proxy in
+            // A view pushed into a NavigationStack with the nav bar hidden can
+            // have its top safe-area inset collapsed to ~0 on some iOS versions,
+            // which slides the back chip under the status bar. Add back exactly
+            // the missing clearance; this resolves to 0 when the view's own
+            // inset is already correct, so working devices are unchanged.
+            let topClearance = max(0, windowTopInset - proxy.safeAreaInsets.top)
 
-                Spacer().frame(height: Spacing.md)
+            AdaptiveContentContainer(maxWidth: 640) {
+                VStack(spacing: 0) {
+                    topBar
 
-                heading
-
-                Spacer().frame(height: Spacing.lg)
-
-                chapterList
-
-                Spacer(minLength: 0)
+                    // Scrollable so the list stays reachable at large Dynamic
+                    // Type sizes — the rows grow tall and would otherwise
+                    // overflow the screen with no way to scroll down to them.
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 0) {
+                            Spacer().frame(height: Spacing.md)
+                            heading
+                            Spacer().frame(height: Spacing.lg)
+                            chapterList
+                            Spacer().frame(height: Spacing.xl)
+                        }
+                    }
+                }
+                .padding(.horizontal, Spacing.md)
+                .padding(.top, topClearance)
             }
-            .padding(.horizontal, Spacing.md)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.arclabBlack.ignoresSafeArea())
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.arclabBlack.ignoresSafeArea())
+        // The Anton display titles can't grow without bound on this dense list;
+        // cap the largest accessibility steps so the layout scales and scrolls
+        // instead of breaking. Text still grows substantially up to the cap.
+        .dynamicTypeSize(.large ... .accessibility2)
+    }
+
+    /// The active key window's top safe-area inset — i.e. the true status-bar
+    /// height, read from the scene rather than the (possibly collapsed) view
+    /// inset. Used to restore top clearance when a hidden-nav-bar
+    /// NavigationStack zeroes the pushed view's own top inset.
+    @MainActor
+    private var keyWindowTopInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first { $0.isKeyWindow }?
+            .safeAreaInsets.top ?? 0
     }
 
     private var topBar: some View {
@@ -48,10 +81,13 @@ struct ChapterListView: View {
             Text("FIVE CHAPTERS.")
                 .font(.anton(size: 32))
                 .foregroundColor(.arclabWhite)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
 
             Text("Five lenses on the same game.")
                 .font(.barlowCondensed(size: 14, italic: true))
                 .foregroundColor(.arclabMidGrey)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -103,6 +139,8 @@ private struct ChapterRow: View {
                     .font(.anton(size: 36))
                     .foregroundColor(.arclabMidGrey)
                     .opacity(isUnlocked ? 1.0 : 0.4)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
                     .frame(width: 44, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: Spacing.xxs) {
@@ -111,15 +149,19 @@ private struct ChapterRow: View {
                         .foregroundColor(isUnlocked ? .arclabWhite : .arclabMidGrey)
                         .opacity(isUnlocked ? 1.0 : 0.5)
                         .lineLimit(2)
+                        .minimumScaleFactor(0.6)
+                        .fixedSize(horizontal: false, vertical: true)
 
+                    // Unlocked captions read as primary copy, not a muted label:
+                    // the mid-grey italic was too low-contrast for some readers,
+                    // so lift it toward white. Locked rows stay muted.
                     Text(isUnlocked ? chapter.subtitle : "Locked. Future chapter.")
                         .font(.barlowCondensed(size: 13, italic: true))
-                        .foregroundColor(.arclabMidGrey)
-                        .lineLimit(2)
+                        .foregroundColor(isUnlocked ? .arclabWhite.opacity(0.85) : .arclabMidGrey)
                         .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer()
+                Spacer(minLength: Spacing.xs)
 
                 if !isUnlocked {
                     Image(systemName: "lock.fill")
