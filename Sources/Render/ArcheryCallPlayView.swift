@@ -42,6 +42,9 @@ struct ArcheryCallPlayView: View {
     @State private var phase: Phase = .stance
     @State private var userCall: Bool? = nil
     @State private var pendingOutcome: ArcheryOutcome? = nil
+    /// Guards the XP/completion write so one call beat only records once.
+    /// Reset on replay so a fresh play-through is credited again.
+    @State private var didRecordOutcome: Bool = false
 
     /// Wobble envelope (radians) at the moment the arrow crossed the
     /// target plane. Drives clean-vs-wobbled judgement for paradox
@@ -83,6 +86,9 @@ struct ArcheryCallPlayView: View {
         case computeVerdict(ArcheryOutcome, attempt: Int)
         case formulaWalkthrough(step: Int)
         case bonusAttempt
+        /// Terminal beat after the deep-dive (or when attempts run out):
+        /// "Play again" restarts the scenario, "Done" exits.
+        case replayPrompt
     }
 
     init(scenario: ArcheryScenario, chapter: Chapter? = nil, onClose: (() -> Void)? = nil) {
@@ -198,17 +204,18 @@ struct ArcheryCallPlayView: View {
         case .computeAction(let attempt):
             phase = .computeVerdict(outcome, attempt: attempt)
         case .bonusAttempt:
-            // Dwell on the canonical swish for a beat, then dismiss.
+            // Dwell on the canonical shot for a beat, then offer a replay
+            // (instead of silently closing) so the user can run it again.
             Task {
                 try? await Task.sleep(for: .seconds(1.5))
-                handleClose()
+                withAnimation(.easeOut(duration: 0.25)) { phase = .replayPrompt }
             }
         default:
             // Call beat finished — derive correctness against the right
             // truth for this scenario type.
             let truthValue = scenarioTruth(outcome: outcome)
             let wasCorrect = (userCall == truthValue)
-            profile.mutate { $0.recordPlayToday() }
+            recordCallOutcome(correct: wasCorrect)
             phase = .verdict(outcome, wasCorrect: wasCorrect)
         }
     }
@@ -297,7 +304,43 @@ struct ArcheryCallPlayView: View {
                 .frame(height: 400)
                 .background(Color.arclabBlack)
                 .transition(.opacity)
+        case .replayPrompt:
+            replayDock
+                .frame(height: 320)
+                .background(Color.arclabBlack)
+                .transition(.opacity)
         }
+    }
+
+    /// Terminal dock after the deep-dive — replay the scenario or exit.
+    private var replayDock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer().frame(height: Spacing.lg)
+
+            Text("THAT'S THE SHOT.")
+                .font(.anton(size: 52))
+                .foregroundColor(.arclabWhite)
+                .padding(.horizontal, Spacing.md)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Spacer().frame(height: Spacing.sm)
+
+            Text("Run it again, or head back.")
+                .font(.barlowCondensed(size: 16, italic: true))
+                .foregroundColor(.arclabMidGrey)
+                .padding(.horizontal, Spacing.md)
+
+            Spacer()
+
+            VStack(spacing: Spacing.xs) {
+                PrimaryButton(label: "Play again", action: handleReplay)
+                SecondaryButton(label: "Done", action: handleClose)
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.bottom, Spacing.md)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Stance — loose the arrow. The call moved mid-flight (CONCEPT parity
@@ -517,6 +560,10 @@ struct ArcheryCallPlayView: View {
                 HStack(spacing: Spacing.md) {
                     if canRetry {
                         AccentOutlineButton(label: "Retry", action: handleComputeRetry)
+                    } else {
+                        // Out of attempts (or nailed it) — offer a clean restart
+                        // instead of leaving "Done" as the only way out.
+                        SecondaryButton(label: "Play again", action: handleReplay)
                     }
                     SecondaryButton(label: "Done", action: handleClose)
                 }
@@ -775,12 +822,15 @@ struct ArcheryCallPlayView: View {
         if case .compute(let a) = phase { attempt = a } else { attempt = 1 }
         phase = .computeAction(attempt: attempt)
 
+        // Compute "game" shots fly at one fixed speed (no slow-mo) so the user
+        // reads the arc plainly as they tune variables. The call beat and the
+        // bonus canonical shot keep their cinematic slow-mo.
         if scenario.usesParadoxMechanic {
             // Spine-driven shot: gravity is solved; user's choice drives wobble.
-            scene.startSimulation(spineOverride: computeSpine)
+            scene.startSimulation(spineOverride: computeSpine, fixedSpeed: true)
         } else {
             scene.setGhost(holdoverCm: nil, velocity: computeVelocity)
-            scene.startSimulation(holdoverCm: computeHoldover, velocity: computeVelocity)
+            scene.startSimulation(holdoverCm: computeHoldover, velocity: computeVelocity, fixedSpeed: true)
         }
     }
 
@@ -854,6 +904,54 @@ struct ArcheryCallPlayView: View {
         onClose?()
     }
 
+    /// Restart the whole scenario from the stance/call beat. Surfaced after
+    /// the deep-dive and on the attempts-spent verdict so the user is never
+    /// dead-ended into closing.
+    ///
+    /// The user already made their YES/NO call this session, so a replay
+    /// restarts the *playable* compute challenge with fresh attempts — it
+    /// does NOT re-ask the call (that would be the same prediction twice).
+    /// A genuine fresh replay of the level (re-entering from the chapter
+    /// list) is a new view instance and still opens on the call beat.
+    private func handleReplay() {
+        pendingOutcome = nil
+        pendingWobbleAtImpact = 0
+        // Fresh slider values for a clean run at the challenge.
+        computeHoldover = 30.0
+        computeVelocity = 80.0
+        computeSpine = 85.0
+        scene.resetForNewShot()
+        withAnimation(.easeOut(duration: 0.25)) { phase = .compute(attempt: 1) }
+        if !scenario.usesParadoxMechanic {
+            scene.setGhost(holdoverCm: computeHoldover, velocity: computeVelocity)
+        }
+    }
+
+    /// Record the call beat into the profile: streak, XP, and a completion
+    /// entry — so archery actually moves the player's Sports IQ and shows up
+    /// in their profile (previously only the streak was recorded, which left
+    /// the profile looking empty for archery-only players). A correct call
+    /// is worth more; repeats of an already-completed scenario earn a small
+    /// fraction so the loop can't be farmed.
+    private func recordCallOutcome(correct: Bool) {
+        guard !didRecordOutcome else { return }
+        didRecordOutcome = true
+        let id = ScenarioID(scenario.id)
+        let base = correct ? 20 : 5
+        let now = Date()
+        profile.mutate { p in
+            p.recordPlayToday(now: now)
+            let already = p.completedScenarios[id]?.firstCompletedAt != nil
+            var record = p.completedScenarios[id] ?? ScenarioRecord.newRecord(now: now)
+            if record.firstCompletedAt == nil { record.firstCompletedAt = now }
+            record.lastPlayedAt = now
+            record.bestScore = max(record.bestScore, base)
+            p.completedScenarios[id] = record
+            p.totalXP += already ? max(1, base / 10) : base
+            p.recomputeRank()
+        }
+    }
+
     // MARK: - HUD visibility
 
     private var shouldShowClose: Bool {
@@ -862,7 +960,7 @@ struct ArcheryCallPlayView: View {
         // user can't bail mid-mechanic, mirroring basketball's gating.
         case .release, .frozen, .computeAction:                 return false
         case .stance, .verdict, .compute, .computeVerdict,
-             .formulaWalkthrough, .bonusAttempt:                return true
+             .formulaWalkthrough, .bonusAttempt, .replayPrompt: return true
         }
     }
 
@@ -871,7 +969,7 @@ struct ArcheryCallPlayView: View {
         case .release, .computeAction, .bonusAttempt:           return 0.5
         case .frozen:                                           return 1.0
         case .stance, .verdict, .compute, .computeVerdict,
-             .formulaWalkthrough:                               return 1.0
+             .formulaWalkthrough, .replayPrompt:                return 1.0
         }
     }
 
@@ -939,6 +1037,8 @@ struct ArcheryCallPlayView: View {
             desiredBottom = 360 + safeBottom
         case .formulaWalkthrough:
             desiredBottom = 400 + safeBottom
+        case .replayPrompt:
+            desiredBottom = 320 + safeBottom
         }
         let ctx = LayoutContext.resolve(
             horizontalSizeClass: hSizeClass,

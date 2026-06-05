@@ -32,6 +32,9 @@ struct SoccerCallPlayView: View {
     @State private var phase: Phase = .stance
     @State private var userCall: Bool? = nil
     @State private var pendingOutcome: SoccerOutcome? = nil
+    /// Guards the XP/completion write so one call beat only records once.
+    /// Reset on replay so a fresh play-through is credited again.
+    @State private var didRecordOutcome: Bool = false
     @State private var keeperOffset: Double
     /// Defender wall's lateral centre. Rolled at the same time as the
     /// keeper but on the OPPOSITE side of the goal — the two together
@@ -407,6 +410,10 @@ struct SoccerCallPlayView: View {
             HStack(spacing: Spacing.md) {
                 if canRetry {
                     AccentOutlineButton(label: "Retry", action: handleComputeRetry)
+                } else {
+                    // Out of attempts (or scored) — offer a clean restart
+                    // instead of leaving "Done" as the only way out.
+                    SecondaryButton(label: "Play again", action: handleReplay)
                 }
                 SecondaryButton(label: "Done", action: handleClose)
             }
@@ -459,7 +466,7 @@ struct SoccerCallPlayView: View {
         switch phase {
         case .release:
             let wasCorrect = (userCall == outcome.didScore)
-            profile.mutate { $0.recordPlayToday() }
+            recordCallOutcome(correct: wasCorrect)
             withAnimation(.easeOut(duration: 0.25)) {
                 phase = .verdict(outcome, wasCorrect: wasCorrect)
             }
@@ -508,6 +515,50 @@ struct SoccerCallPlayView: View {
 
     private func handleClose() {
         onClose?()
+    }
+
+    /// Restart the playable compute challenge with fresh attempts. Surfaced
+    /// on the attempts-spent verdict so the user is never dead-ended into
+    /// closing.
+    ///
+    /// The user already made their YES/NO call this session, so a replay does
+    /// NOT re-ask the call — it drops straight back into the slider challenge.
+    /// A genuine fresh replay of the level (re-entering from the picker) is a
+    /// new view instance and still opens on the call beat.
+    private func handleReplay() {
+        pendingOutcome = nil
+        lastResolvedOutcome = nil
+        // Fresh slider values for a clean run at the challenge.
+        computeSpin = 0
+        computeVelocity = scenario.ballVelocity
+        computeAimOffset = scenario.aimOffset
+        scene.resetForNewShot()
+        withAnimation(.easeOut(duration: 0.25)) { phase = .compute(attempt: 1) }
+        updateAimIndicator()
+    }
+
+    /// Record the call beat into the profile: streak, XP, and a completion
+    /// entry — so soccer actually moves the player's Sports IQ and shows up
+    /// in their profile (previously only the streak was recorded). A correct
+    /// call is worth more; repeats of an already-completed scenario earn a
+    /// small fraction so the loop can't be farmed.
+    private func recordCallOutcome(correct: Bool) {
+        guard !didRecordOutcome else { return }
+        didRecordOutcome = true
+        let id = ScenarioID(scenario.id)
+        let base = correct ? 20 : 5
+        let now = Date()
+        profile.mutate { p in
+            p.recordPlayToday(now: now)
+            let already = p.completedScenarios[id]?.firstCompletedAt != nil
+            var record = p.completedScenarios[id] ?? ScenarioRecord.newRecord(now: now)
+            if record.firstCompletedAt == nil { record.firstCompletedAt = now }
+            record.lastPlayedAt = now
+            record.bestScore = max(record.bestScore, base)
+            p.completedScenarios[id] = record
+            p.totalXP += already ? max(1, base / 10) : base
+            p.recomputeRank()
+        }
     }
 
     // MARK: - HUD visibility

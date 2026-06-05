@@ -101,6 +101,25 @@ final class ArcherySceneNode: SKScene {
     private var simPosition: CGPoint = .zero
     private var simVelocity: CGVector = .zero
     private var isSimulating: Bool = false
+
+    /// True while an arrow is mid-flight OR frozen at the call beat — i.e.
+    /// from release until it lands or the shot is reset. Drives flight-arrow
+    /// visibility across scene-graph rebuilds. Keying visibility off
+    /// `isSimulating` alone made the arrow vanish during the YES/NO call:
+    /// the mid-flight freeze sets `isSimulating = false`, so a rebuild
+    /// (triggered when the call dock changes the UI reserve) snapped the
+    /// visible arrow back to the resting arrow on the bow. This flag stays
+    /// true through the freeze so the frozen arrow keeps showing.
+    private var arrowInFlight: Bool = false
+
+    /// When true, this whole flight runs at one fixed speed with NO mid-flight
+    /// slow-mo window. Set for compute-mode "game" shots (the user tunes the
+    /// sliders and shoots to see what happens) — those want a plain, readable
+    /// arc, not a dramatized one. The call beat (approach + post-call resolve)
+    /// and the bonus canonical shot keep their cinematic slow-mo. Set per shot
+    /// in `fireArrow` from its `fixedSpeed` argument.
+    private var suppressSlowMoThisFlight: Bool = false
+
     private var lastUpdateTime: TimeInterval = 0
     private var accumulator: Double = 0
     private let fixedDt: Double = 1.0 / 240.0
@@ -185,26 +204,32 @@ final class ArcherySceneNode: SKScene {
 
     /// Fire the arrow with the user's chosen holdover and velocity (compute mode).
     /// The extra elevation is added to the pin's calibration angle by
-    /// δθ = H / d_target (small-angle approximation).
-    func startSimulation(holdoverCm: Double, velocity: Double) {
+    /// δθ = H / d_target (small-angle approximation). `fixedSpeed` flies the
+    /// shot at one constant speed (no cinematic slow-mo) — the compute "game"
+    /// wants a plain, readable arc, not a dramatized one.
+    func startSimulation(holdoverCm: Double, velocity: Double, fixedSpeed: Bool = false) {
         let extraAngle = (holdoverCm / 100.0) / scenario.targetDistance
         fireArrow(launchAngle: scenario.pinLaunchAngleRadians + extraAngle,
-                  velocity: velocity)
+                  velocity: velocity,
+                  fixedSpeed: fixedSpeed)
     }
 
     /// Paradox-mode fire: user picks SPINE, everything else uses scenario
     /// defaults (calibrated angle, fixed velocity, scenario's bowDraw).
     /// `userSpine - scenario.bowDraw` drives the wobble for this shot.
-    func startSimulation(spineOverride: Double) {
+    func startSimulation(spineOverride: Double, fixedSpeed: Bool = false) {
         fireArrow(
             launchAngle: scenario.pinLaunchAngleRadians,
             velocity: scenario.arrowVelocity,
-            spineOverride: spineOverride
+            spineOverride: spineOverride,
+            fixedSpeed: fixedSpeed
         )
     }
 
     /// Resume a shot that was frozen at the mid-flight call beat. The arrow
-    /// continues from where it hung; no further freeze this shot.
+    /// continues from where it hung; no further freeze this shot. The call
+    /// scene keeps its cinematic slow-mo through the resolve (that's the
+    /// dramatic moment); only the compute "game" shots run at fixed speed.
     func resumeFlight() {
         guard !isSimulating, !midflightDone else { return }
         midflightDone = true
@@ -214,7 +239,7 @@ final class ArcherySceneNode: SKScene {
         accumulator = 0
     }
 
-    private func fireArrow(launchAngle: Double, velocity: Double, spineOverride: Double? = nil, pauseAtMidflight: Bool = false) {
+    private func fireArrow(launchAngle: Double, velocity: Double, spineOverride: Double? = nil, pauseAtMidflight: Bool = false, fixedSpeed: Bool = false) {
         clearGhost()
         applyBowAngle(worldLaunchAngle: launchAngle, velocity: velocity)
         simPosition = CGPoint(x: 0, y: scenario.releaseHeight)
@@ -227,6 +252,8 @@ final class ArcherySceneNode: SKScene {
         self.pauseAtMidflight = pauseAtMidflight
         midflightTriggered = false
         midflightDone = false
+        arrowInFlight = true
+        suppressSlowMoThisFlight = fixedSpeed
         accumulator = 0
         lastUpdateTime = 0
         flightElapsedTime = 0
@@ -381,6 +408,8 @@ final class ArcherySceneNode: SKScene {
     /// (the fixed-dt integrator is untouched; only how fast we feed it real
     /// time varies).
     private func currentTimeScale() -> Double {
+        // Compute-mode "game" shot: one fixed speed end-to-end, no slow-mo.
+        if suppressSlowMoThisFlight { return timeScaleNormal }
         let dx = scenario.targetDistance
         guard dx > 0 else { return timeScaleNormal }
         let progress = max(0, min(1, simPosition.x / dx))
@@ -431,6 +460,7 @@ final class ArcherySceneNode: SKScene {
         simPosition = CGPoint(x: scenario.targetDistance, y: impactY)
         trailPoints[trailPoints.count - 1] = simPosition
         isSimulating = false
+        arrowInFlight = false
 
         let offset = impactY - scenario.bullseyeHeight
         let outcome: ArcheryOutcome
@@ -461,6 +491,8 @@ final class ArcherySceneNode: SKScene {
         pauseAtMidflight = false
         midflightTriggered = false
         midflightDone = false
+        arrowInFlight = false
+        suppressSlowMoThisFlight = false
     }
 
     // MARK: - Scene graph
@@ -501,8 +533,11 @@ final class ArcherySceneNode: SKScene {
         updateFlightArrowVisual()
         updateTrailVisual()
         // Restore in-flight visibility — fresh nodes default to visible
-        // (resting) and hidden (flight). If we're mid-sim, swap them.
-        if isSimulating {
+        // (resting) and hidden (flight). If a shot is in the air OR frozen
+        // at the call beat, swap them so the flight arrow keeps showing.
+        // (`arrowInFlight`, not `isSimulating`: the mid-flight freeze pauses
+        // the sim but the arrow must stay visible for the YES/NO call.)
+        if arrowInFlight {
             restingArrowNode?.isHidden = true
             flightArrowNode?.isHidden = false
         }
@@ -929,7 +964,10 @@ final class ArcherySceneNode: SKScene {
 
     private func updateFlightArrowVisual() {
         flightArrowNode?.position = transform.scenePoint(world: simPosition)
-        guard isSimulating, simVelocity.dx != 0 || simVelocity.dy != 0 else { return }
+        // Orient along the velocity whenever the arrow has one — including the
+        // mid-flight freeze (sim paused, velocity retained) so a rebuild
+        // during the call beat doesn't leave the frozen arrow pointing flat.
+        guard simVelocity.dx != 0 || simVelocity.dy != 0 else { return }
         let screenDx = simVelocity.dx * Double(transform.xScale)
         let screenDy = simVelocity.dy * Double(transform.yScale)
         let baseAngle = atan2(screenDy, screenDx)

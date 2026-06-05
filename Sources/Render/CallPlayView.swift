@@ -77,6 +77,9 @@ struct CallPlayView: View {
         /// Free bonus attempt — canonical values, user watches the swish
         /// play out after seeing the derivation.
         case bonusAttempt
+        /// Terminal beat after the deep-dive (or when attempts run out):
+        /// "Play again" restarts the scenario, "Done" exits.
+        case replayPrompt
 
         enum Resolution: Sendable, Equatable {
             case success(flavor: String)
@@ -190,10 +193,11 @@ struct CallPlayView: View {
                 phase = .computeVerdict(resolution, attempt: attempt)
             } else if case .bonusAttempt = phase {
                 // Canonical shot played out after the walkthrough. Dwell on
-                // the swish for a beat, then dismiss back to the chapter.
+                // the swish for a beat, then offer a replay instead of
+                // silently closing.
                 Task {
                     try? await Task.sleep(for: .seconds(1.5))
-                    handleClose()
+                    withAnimation(.easeOut(duration: 0.25)) { phase = .replayPrompt }
                 }
             } else {
                 // Call beat finished — derive correctness vs truth.
@@ -257,7 +261,8 @@ struct CallPlayView: View {
         switch phase {
         case .stance, .frozen, .compute:                          desiredBottom = metrics.bottomReserveIdle
         case .release, .finish, .computeAction, .bonusAttempt:    desiredBottom = metrics.bottomReserveAction
-        case .verdict, .computeVerdict, .formulaWalkthrough:      desiredBottom = metrics.bottomReserveOutcome
+        case .verdict, .computeVerdict, .formulaWalkthrough,
+             .replayPrompt:                                       desiredBottom = metrics.bottomReserveOutcome
         }
         // v2.1 uses CallHUD (60pt) instead of v1's PlayHUDView (140pt) so
         // the top reserve is smaller — more vertical room for the court arc.
@@ -324,7 +329,43 @@ struct CallPlayView: View {
                 .frame(height: 400)
                 .background(Color.arclabBlack)
                 .transition(.opacity)
+        case .replayPrompt:
+            replayDock
+                .frame(height: 320)
+                .background(Color.arclabBlack)
+                .transition(.opacity)
         }
+    }
+
+    /// Terminal dock after the deep-dive — replay the scenario or exit.
+    private var replayDock: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Spacer().frame(height: Spacing.lg)
+
+            Text("THAT'S THE SHOT.")
+                .font(.anton(size: 52))
+                .foregroundColor(.arclabWhite)
+                .padding(.horizontal, Spacing.md)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+
+            Spacer().frame(height: Spacing.sm)
+
+            Text("Run it again, or head back.")
+                .font(.barlowCondensed(size: 16, italic: true))
+                .foregroundColor(.arclabMidGrey)
+                .padding(.horizontal, Spacing.md)
+
+            Spacer()
+
+            VStack(spacing: Spacing.xs) {
+                PrimaryButton(label: "Play again", action: handleReplay)
+                SecondaryButton(label: "Done", action: handleClose)
+            }
+            .padding(.horizontal, Spacing.md)
+            .padding(.bottom, Spacing.md)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var stanceDock: some View {
@@ -471,6 +512,10 @@ struct CallPlayView: View {
                 HStack(spacing: Spacing.md) {
                     if canRetry {
                         AccentOutlineButton(label: "Retry", action: handleComputeRetry)
+                    } else {
+                        // Out of attempts (or made it) — offer a clean restart
+                        // instead of leaving "Done" as the only way out.
+                        SecondaryButton(label: "Play again", action: handleReplay)
                     }
                     SecondaryButton(label: "Done", action: handleClose)
                 }
@@ -675,12 +720,22 @@ struct CallPlayView: View {
         scene.resumeAfterApex()
     }
 
+    /// Restart the playable compute challenge with fresh attempts. Surfaced
+    /// after the deep-dive and on the attempts-spent verdict so the user is
+    /// never dead-ended into closing.
+    ///
+    /// The user already made their YES/NO call this session, so a replay does
+    /// NOT re-ask the call (that would be the same prediction twice) — it
+    /// drops straight back into the slider challenge. A genuine fresh replay
+    /// of the level (re-entering from the picker) is a new view instance and
+    /// still opens on the call beat.
     private func handleReplay() {
-        attemptCounter += 1
-        outcomeWritten = false
-        userCall = nil
+        pendingResolution = nil
+        // Fresh slider values for a clean run at the challenge.
+        computeTheta = 50.0
+        computeVelocity = 7.0
         scene.resetForNewShot()
-        phase = .stance
+        withAnimation(.easeOut(duration: 0.25)) { phase = .compute(attempt: 1) }
     }
 
     /// User tapped TRY IT on the reveal — open the compute slider dock.
@@ -812,14 +867,14 @@ struct CallPlayView: View {
         // bonusAttempt keeps CLOSE active as a safety net (no other escape
         // path exists if the simulation ever fails to resolve).
         case .release, .finish, .frozen, .computeAction: return false
-        case .stance, .verdict, .compute, .computeVerdict, .formulaWalkthrough, .bonusAttempt: return true
+        case .stance, .verdict, .compute, .computeVerdict, .formulaWalkthrough, .bonusAttempt, .replayPrompt: return true
         }
     }
 
     private var hudOpacity: Double {
         switch phase {
         case .release, .finish, .frozen, .computeAction: return 0.5
-        case .stance, .verdict, .compute, .computeVerdict, .formulaWalkthrough, .bonusAttempt: return 1.0
+        case .stance, .verdict, .compute, .computeVerdict, .formulaWalkthrough, .bonusAttempt, .replayPrompt: return 1.0
         }
     }
 
