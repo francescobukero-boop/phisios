@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		01E93814446E06408185D735 /* DailyQuestionPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01EDE0F612890EE3C325314C /* DailyQuestionPicker.swift */; };
 		01F651FCB58C68A4E52A2D4C /* MetaDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = B56B5C1B3A9978E9FDD773CB /* MetaDefinition.swift */; };
 		028E6B8341BB4EA43B45EB02 /* bb-a-short-guard.json in Resources */ = {isa = PBXBuildFile; fileRef = 3226FAEA735FC3B5CF9A0215 /* bb-a-short-guard.json */; };
 		05537DF0A39466EB9DA0E7E1 /* bb-a-tiptoe-corner.json in Resources */ = {isa = PBXBuildFile; fileRef = 0EFBC84E8A123822C56AC138 /* bb-a-tiptoe-corner.json */; };
@@ -77,11 +78,9 @@
 		56163DA5B104364F082CCA17 /* rim-hit.wav in Resources */ = {isa = PBXBuildFile; fileRef = 55657A3022D7E039A18756F4 /* rim-hit.wav */; };
 		58BC89208219985DCBF66E68 /* PlayerProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565A53E3D7433F97610E37D8 /* PlayerProfile.swift */; };
 		5A0CE08400826868FBD6DCC6 /* SwipeBack.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC9D61ABAEB4B270D9F96E21 /* SwipeBack.swift */; };
-		AA0100000000000000000001 /* LessonReaderOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000002 /* LessonReaderOverlay.swift */; };
 		5BC360F3E9CCBC0B5B601ED4 /* bb-c-wing-throw.json in Resources */ = {isa = PBXBuildFile; fileRef = 89E0146E05388213721F8F2D /* bb-c-wing-throw.json */; };
 		5BED9E8FF4136E469B82D48F /* arrow-whoosh.wav in Resources */ = {isa = PBXBuildFile; fileRef = C532B3389C4740D326D4750D /* arrow-whoosh.wav */; };
 		5C907242A1C71713A2597EFE /* MasteryServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 54B021F5E63ADCE5F0F48A01 /* MasteryServiceTests.swift */; };
-		AA0200000000000000000001 /* ArcheryMidflightFreezeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200000000000000000002 /* ArcheryMidflightFreezeTests.swift */; };
 		5CD3BAD7BDA70191D9A4CEB0 /* bb-3-one-legged.json in Resources */ = {isa = PBXBuildFile; fileRef = 39F47C329819449D28A0239A /* bb-3-one-legged.json */; };
 		601F84B50143F336A5610D2D /* ChapterListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F174CF0BA821EEC10A5BBAE9 /* ChapterListView.swift */; };
 		60D880D0E0401274C47BD805 /* ScenarioPreviewCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28676422AE85F34C1F4D603A /* ScenarioPreviewCard.swift */; };
@@ -91,6 +90,7 @@
 		6332BC52876D5A9B2A0F3755 /* rim-drop.wav in Resources */ = {isa = PBXBuildFile; fileRef = EFE42EFD365B9D8BF4E5E2B9 /* rim-drop.wav */; };
 		647FDE681CB9A8A0118245B8 /* Sport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87314AE5D3120BC1E36A05C9 /* Sport.swift */; };
 		65E682E64534953F6FAA0E68 /* CallHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0827F358B101907C7849CE8 /* CallHUD.swift */; };
+		68B651C6049B79E6AAA5D9FF /* DailyQuestion.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4CB0074C20CCB4F72507025 /* DailyQuestion.swift */; };
 		6AB9D4E7DDE781EB83088665 /* ArcheryCurriculum.swift in Sources */ = {isa = PBXBuildFile; fileRef = ADC86A32163F3391B094CBA2 /* ArcheryCurriculum.swift */; };
 		6C12232BB5DDC90E4A339281 /* bb-a-freethrow.json in Resources */ = {isa = PBXBuildFile; fileRef = D89FF30441E91DC5500F54D8 /* bb-a-freethrow.json */; };
 		6C123224BFCE06852C35C1D8 /* bb-c-elbow.json in Resources */ = {isa = PBXBuildFile; fileRef = 8506F9E112B37E14102862E2 /* bb-c-elbow.json */; };
@@ -137,6 +137,8 @@
 		A50A6EC19CA4C118E4EA195D /* SituationDefinition.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAC0365E997ADDB9388C7A28 /* SituationDefinition.swift */; };
 		A6D1EAC74A881EF854C55FF0 /* NextSituationPickerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85CCC4DD8C3D57AACA7580A0 /* NextSituationPickerTests.swift */; };
 		A88D693CFD619C074EDF76FB /* bb-2-shooters-roll.json in Resources */ = {isa = PBXBuildFile; fileRef = 4A41D30A7C1FD02E674EC87D /* bb-2-shooters-roll.json */; };
+		AA0100000000000000000001 /* LessonReaderOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0100000000000000000002 /* LessonReaderOverlay.swift */; };
+		AA0200000000000000000001 /* ArcheryMidflightFreezeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0200000000000000000002 /* ArcheryMidflightFreezeTests.swift */; };
 		AA25C5017A57BB4C92F1BF1C /* bb-1-logo-three.json in Resources */ = {isa = PBXBuildFile; fileRef = 3F21B6D504DF51012F795E95 /* bb-1-logo-three.json */; };
 		AAD7375D99BE871F531A9DF2 /* bb-1-baseline.json in Resources */ = {isa = PBXBuildFile; fileRef = 7FF571A6760A0E4E463D989A /* bb-1-baseline.json */; };
 		AB8D38F20F21416334FB2C8E /* bb-5-corner-pocket.json in Resources */ = {isa = PBXBuildFile; fileRef = FBE4EBA8500C2A2EC9D42570 /* bb-5-corner-pocket.json */; };
@@ -186,6 +188,7 @@
 		CCFD229D5BBFF6D436C64B90 /* Chapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0290C1763D1502D323C308D /* Chapter.swift */; };
 		CDDFA4FA136526C53507EEC8 /* PlayInputSingleFieldView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFA8AEFE3443D9C263541F3C /* PlayInputSingleFieldView.swift */; };
 		CE2C7347CE0F40BFC3A705C8 /* Spacing+Tokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 599642AB2CEC72A429E32B58 /* Spacing+Tokens.swift */; };
+		CF24DFAE664297DE39EB3C11 /* DailyQuestionCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CD465C6101FFD76CA46E2FF /* DailyQuestionCatalog.swift */; };
 		CFECCB174E13F0134AE220D8 /* PostSplashRouterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A6EEBEA5AE6782EFF0F876A /* PostSplashRouterView.swift */; };
 		D01562D44B3D2C7420D507E2 /* CourtCoordinateTransform.swift in Sources */ = {isa = PBXBuildFile; fileRef = D753DFE7BF4B1F44E0A40CA1 /* CourtCoordinateTransform.swift */; };
 		D1A7263F6FD2BFC59F90F17C /* bb-c-pull-up.json in Resources */ = {isa = PBXBuildFile; fileRef = 468C92DDFC772CD1A88E40AD /* bb-c-pull-up.json */; };
@@ -226,6 +229,7 @@
 		F090A7848474A02902E4B54F /* bb-c-rainbow.json in Resources */ = {isa = PBXBuildFile; fileRef = 96F03B156C72D728DD673AFF /* bb-c-rainbow.json */; };
 		F26EB030EB438C2767FB6A89 /* miss-tone.wav in Resources */ = {isa = PBXBuildFile; fileRef = 057D1055BF0763AA15795726 /* miss-tone.wav */; };
 		F5E1424C64F4B803A5EADA45 /* bb-b-wing.json in Resources */ = {isa = PBXBuildFile; fileRef = 08850FEF30A97A81035007DE /* bb-b-wing.json */; };
+		F77E804F8897522C84928488 /* DailyQuestionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2A75B18F60F890AD8D6A3F7 /* DailyQuestionView.swift */; };
 		F96300E2C406C80C892616C7 /* AdaptiveContentContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A836AB9F75ED1B08BED16FA /* AdaptiveContentContainer.swift */; };
 		FB065A66D348701062DA66A7 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DEDB5BFF752609FFEBE03DD8 /* Assets.xcassets */; };
 		FB665A4929E95AC819176542 /* bb-a-top-key.json in Resources */ = {isa = PBXBuildFile; fileRef = B183689743238F32B655E464 /* bb-a-top-key.json */; };
@@ -251,6 +255,7 @@
 
 /* Begin PBXFileReference section */
 		015DA48DF98011DFBA83D806 /* PlayInputView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayInputView.swift; sourceTree = "<group>"; };
+		01EDE0F612890EE3C325314C /* DailyQuestionPicker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DailyQuestionPicker.swift; sourceTree = "<group>"; };
 		057D1055BF0763AA15795726 /* miss-tone.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "miss-tone.wav"; sourceTree = "<group>"; };
 		07EF9C90BFBFEEC9EE121655 /* PlaySceneNode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaySceneNode.swift; sourceTree = "<group>"; };
 		08331D43606F118E4724D75E /* AppOpenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppOpenView.swift; sourceTree = "<group>"; };
@@ -292,6 +297,7 @@
 		4A0F6C1850BF81644C3F3AE4 /* bb-b-stepback.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-b-stepback.json"; sourceTree = "<group>"; };
 		4A1B286B222B5175D551F146 /* NextUpFinder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextUpFinder.swift; sourceTree = "<group>"; };
 		4A41D30A7C1FD02E674EC87D /* bb-2-shooters-roll.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-2-shooters-roll.json"; sourceTree = "<group>"; };
+		4CD465C6101FFD76CA46E2FF /* DailyQuestionCatalog.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DailyQuestionCatalog.swift; sourceTree = "<group>"; };
 		4DA73619B7B11D150440BA5B /* bb-5-toe-on-line.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-5-toe-on-line.json"; sourceTree = "<group>"; };
 		4DEFAC4037D2B22155CE1229 /* SimulationModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimulationModule.swift; sourceTree = "<group>"; };
 		4E45D14D6BB08C187806B5BC /* LevelTypeMastery.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LevelTypeMastery.swift; sourceTree = "<group>"; };
@@ -306,7 +312,6 @@
 		53D8BAF455E275B61070AC03 /* bb-b-flat.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-b-flat.json"; sourceTree = "<group>"; };
 		5455FBB61A5C06098BF7E7E8 /* bb-a-postup.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-a-postup.json"; sourceTree = "<group>"; };
 		54B021F5E63ADCE5F0F48A01 /* MasteryServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MasteryServiceTests.swift; sourceTree = "<group>"; };
-		AA0200000000000000000002 /* ArcheryMidflightFreezeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcheryMidflightFreezeTests.swift; sourceTree = "<group>"; };
 		55657A3022D7E039A18756F4 /* rim-hit.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "rim-hit.wav"; sourceTree = "<group>"; };
 		565A53E3D7433F97610E37D8 /* PlayerProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerProfile.swift; sourceTree = "<group>"; };
 		57AA5494B48AAE609BFD9F7D /* LayoutContext.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutContext.swift; sourceTree = "<group>"; };
@@ -359,7 +364,10 @@
 		A2BD5B0B4E34FAD8FD235201 /* bb-2-game-six-corner.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-2-game-six-corner.json"; sourceTree = "<group>"; };
 		A41E94A98B384BA64BFB2F8A /* target-thud.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "target-thud.wav"; sourceTree = "<group>"; };
 		A4B80171FE18F0E24442E27B /* bb-4-elbow-bank.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-4-elbow-bank.json"; sourceTree = "<group>"; };
+		A4CB0074C20CCB4F72507025 /* DailyQuestion.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DailyQuestion.swift; sourceTree = "<group>"; };
 		A5887B34B2CC453BE544852F /* ScenarioLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenarioLoader.swift; sourceTree = "<group>"; };
+		AA0100000000000000000002 /* LessonReaderOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonReaderOverlay.swift; sourceTree = "<group>"; };
+		AA0200000000000000000002 /* ArcheryMidflightFreezeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcheryMidflightFreezeTests.swift; sourceTree = "<group>"; };
 		AA3556E6D831458921B8B52E /* bb-a-ugly-2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-a-ugly-2.json"; sourceTree = "<group>"; };
 		AA9DEAE11EE63EE5C4441CC7 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		ADC86A32163F3391B094CBA2 /* ArcheryCurriculum.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcheryCurriculum.swift; sourceTree = "<group>"; };
@@ -398,12 +406,12 @@
 		DAC015AA73E8226960B1022D /* brand-mark.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = "brand-mark.wav"; sourceTree = "<group>"; };
 		DAC0365E997ADDB9388C7A28 /* SituationDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SituationDefinition.swift; sourceTree = "<group>"; };
 		DC9D61ABAEB4B270D9F96E21 /* SwipeBack.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeBack.swift; sourceTree = "<group>"; };
-		AA0100000000000000000002 /* LessonReaderOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LessonReaderOverlay.swift; sourceTree = "<group>"; };
 		DE41AAC818D00E32D8B2B0FD /* ScenarioDefinition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScenarioDefinition.swift; sourceTree = "<group>"; };
 		DEDB5BFF752609FFEBE03DD8 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		DF1EA282B0724F9FFEF747BF /* bb-a-wing-catch.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-a-wing-catch.json"; sourceTree = "<group>"; };
 		DF4BB000793F934837B8B578 /* ArcheryCallVerdictView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ArcheryCallVerdictView.swift; sourceTree = "<group>"; };
 		DFA8AEFE3443D9C263541F3C /* PlayInputSingleFieldView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayInputSingleFieldView.swift; sourceTree = "<group>"; };
+		E2A75B18F60F890AD8D6A3F7 /* DailyQuestionView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DailyQuestionView.swift; sourceTree = "<group>"; };
 		E47AA15346583018EED15CFF /* airball.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = airball.wav; sourceTree = "<group>"; };
 		E4AC517D75B07B5A3CE1C1CE /* bb-3-standstill.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "bb-3-standstill.json"; sourceTree = "<group>"; };
 		EB473A0AE7E9BFB96E331F28 /* BarlowCondensed-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "BarlowCondensed-Regular.ttf"; sourceTree = "<group>"; };
@@ -531,6 +539,7 @@
 				5283FB0B2FCD8BA2001AAE23 /* SoccerCallVerdictView.swift */,
 				5283FB0D2FCD8BC8001AAE23 /* SoccerCallPlayView.swift */,
 				52BDEF332FCE0F4500528BA6 /* SoccerSceneNode.swift */,
+				E2A75B18F60F890AD8D6A3F7 /* DailyQuestionView.swift */,
 			);
 			path = Render;
 			sourceTree = "<group>";
@@ -579,6 +588,9 @@
 				5283FB032FCD8B0A001AAE23 /* SoccerScenario.swift */,
 				5283FB052FCD8B28001AAE23 /* SoccerScenarioCatalog.swift */,
 				5283FB072FCD8B4E001AAE23 /* SoccerCurriculum.swift */,
+				A4CB0074C20CCB4F72507025 /* DailyQuestion.swift */,
+				4CD465C6101FFD76CA46E2FF /* DailyQuestionCatalog.swift */,
+				01EDE0F612890EE3C325314C /* DailyQuestionPicker.swift */,
 			);
 			path = Domain;
 			sourceTree = "<group>";
@@ -779,8 +791,6 @@
 				E822BD9EBD3D667853221ACD /* PBXTargetDependency */,
 			);
 			name = PhysicsGameTests;
-			packageProductDependencies = (
-			);
 			productName = PhysicsGameTests;
 			productReference = 83CB785580DE7171854CF1F5 /* PhysicsGameTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -797,8 +807,6 @@
 			dependencies = (
 			);
 			name = PhysicsGame;
-			packageProductDependencies = (
-			);
 			productName = PhysicsGame;
 			productReference = 37376D982861679D8C01BD9A /* PhysicsGame.app */;
 			productType = "com.apple.product-type.application";
@@ -1100,6 +1108,10 @@
 				C83C8FE22864C57CE6C9DB51 /* TopBar.swift in Sources */,
 				C7F7E63F6E0454993C1F097B /* VariableStrip.swift in Sources */,
 				CB055AADD3F9BD442ADFE2F1 /* VoiceDefinition.swift in Sources */,
+				68B651C6049B79E6AAA5D9FF /* DailyQuestion.swift in Sources */,
+				CF24DFAE664297DE39EB3C11 /* DailyQuestionCatalog.swift in Sources */,
+				01E93814446E06408185D735 /* DailyQuestionPicker.swift in Sources */,
+				F77E804F8897522C84928488 /* DailyQuestionView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

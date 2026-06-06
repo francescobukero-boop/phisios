@@ -38,6 +38,8 @@ struct PostSplashRouterView: View {
     @State private var pushedSoccerScenario: SoccerScenario?
     @State private var pushedSoccerChapter: Chapter?
     @State private var presentedProfile: Bool = false
+    /// Daily Question — presented full-screen from the Home DAILY card.
+    @State private var presentedDaily: Bool = false
 
     var body: some View {
         if profile.profile.hasSeenOnboarding {
@@ -53,7 +55,8 @@ struct PostSplashRouterView: View {
             HomeView(
                 onTapTodayCard: handleTapTodayCard,
                 onOpenSport: { sport in navigationPath.append(V2Route.chapterList(sport)) },
-                onOpenProfile: { presentedProfile = true }
+                onOpenProfile: { presentedProfile = true },
+                onOpenDaily: { presentedDaily = true }
             )
             .navigationDestination(for: V2Route.self) { route in
                 destination(for: route)
@@ -113,6 +116,10 @@ struct PostSplashRouterView: View {
         }
         .sheet(isPresented: $presentedProfile) {
             ProfileView()
+        }
+        // Daily Question — one small physics question a day, full-screen.
+        .fullScreenCover(isPresented: $presentedDaily) {
+            DailyQuestionView(onClose: { presentedDaily = false })
         }
     }
 

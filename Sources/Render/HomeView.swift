@@ -26,6 +26,9 @@ struct HomeView: View {
     /// Tap a sport row → that sport's chapter list.
     let onOpenSport: (Sport) -> Void
     let onOpenProfile: () -> Void
+    /// Tap the DAILY card → push the Daily Question. Optional so existing
+    /// call sites and previews stay valid.
+    var onOpenDaily: () -> Void = {}
 
     /// Drives the one-shot entrance animation (fade + rise) when Home appears.
     @State private var appeared = false
@@ -104,14 +107,19 @@ struct HomeView: View {
         .accessibilityLabel("Profile. \(profile.profile.rankRung.description), \(streak) day streak. View your Sports IQ, streak, and badges.")
     }
 
-    // MARK: - CONTINUE hero
+    // MARK: - Daily hero (the home feed card)
 
+    /// The hero slot now serves the Daily Question — one card, not a new section
+    /// stacked on top. Keeps the premium poster look; the copy + CTA switch
+    /// between "answer" and the answered "back tomorrow" state.
     private var heroCard: some View {
-        Button(action: handleTodayTap) {
+        let answered = profile.profile.hasAnsweredDailyToday()
+        let sportName = DailyQuestionPicker.todays()?.sport.displayName ?? "TODAY"
+        return Button(action: onOpenDaily) {
             ZStack(alignment: .bottomLeading) {
-                heroBackground
+                posterBackground
 
-                // Bottom scrim so the copy stays legible over imagery.
+                // Bottom scrim so the copy stays legible over the backdrop.
                 LinearGradient(
                     colors: [Color.arclabBlack.opacity(0), Color.arclabBlack.opacity(0.85)],
                     startPoint: .center,
@@ -119,19 +127,28 @@ struct HomeView: View {
                 )
 
                 VStack(alignment: .leading, spacing: Spacing.xs) {
-                    Text(heroEyebrow)
-                        .font(.sfMono(size: 11))
-                        .foregroundColor(.arclabMidGrey)
-                        .tracking(2.0)
+                    HStack(spacing: Spacing.xs) {
+                        Circle()
+                            .fill(answered ? Color.arclabMidGrey : Color.arclabRimOrange)
+                            .frame(width: 4, height: 4)
+                        Text(answered ? "DAILY · DONE" : "DAILY · \(sportName)")
+                            .font(.sfMono(size: 11))
+                            .foregroundColor(.arclabMidGrey)
+                            .tracking(2.0)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
 
-                    Text(todayHeadline)
+                    Text(answered ? "BACK TOMORROW." : "TODAY'S QUESTION.")
                         .font(.anton(size: 40))
                         .foregroundColor(.arclabWhite)
                         .lineLimit(2)
                         .minimumScaleFactor(0.7)
                         .fixedSize(horizontal: false, vertical: true)
 
-                    Text(todaySubhead)
+                    Text(answered
+                         ? "You've called it. Tap to re-read the why and the fun fact."
+                         : "One quick call on the physics — 20 seconds.")
                         .font(.barlowCondensed(size: 16, italic: true))
                         .foregroundColor(.arclabWhite.opacity(0.82))
                         .lineLimit(2)
@@ -139,9 +156,9 @@ struct HomeView: View {
 
                     HStack {
                         Spacer()
-                        Text(todayCTA)
+                        Text(answered ? "SEE IT AGAIN  →" : "ANSWER  →")
                             .font(.sfMono(size: 13, weight: .medium))
-                            .foregroundColor(.arclabRimOrange)
+                            .foregroundColor(answered ? .arclabMidGrey : .arclabRimOrange)
                             .tracking(2.0)
                     }
                     .padding(.top, Spacing.xs)
@@ -153,13 +170,15 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: Sizing.cardRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: Sizing.cardRadius)
-                    .stroke(Color.arclabBorderGrey, lineWidth: Sizing.borderWidth)
+                    .stroke(answered ? Color.arclabBorderGrey : Color.arclabRimOrange,
+                            lineWidth: Sizing.borderWidth)
             )
             .contentShape(Rectangle())
         }
         .buttonStyle(PressableButtonStyle(haptic: .impact(weight: .medium)))
-        .disabled(todayPick == nil)
-        .accessibilityLabel(todayAccessibilityLabel)
+        .accessibilityLabel(answered
+            ? "Daily question, answered. Tap to review."
+            : "Daily question. Tap to answer.")
     }
 
     @ViewBuilder

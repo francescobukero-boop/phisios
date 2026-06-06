@@ -50,6 +50,17 @@ struct PlayerProfile: Codable, Sendable, Equatable {
     /// Empty for legacy v4 profiles; defaults via migration.
     var levelTypeMasteries: [String: LevelTypeMastery]
 
+    // MARK: - Daily Question
+
+    /// Start-of-day date the player last answered the Daily Question. Drives the
+    /// "already answered today → show the result, locked until tomorrow" gate.
+    /// Additive optional field — old profiles decode it as nil with no migration.
+    var lastDailyAnsweredDate: Date? = nil
+
+    /// The option index the player picked on their last Daily answer, so a
+    /// re-open can show the same revealed state (with their pick marked).
+    var lastDailyAnsweredPick: Int? = nil
+
     static func newProfile() -> PlayerProfile {
         PlayerProfile(
             profileSchemaVersion: PlayerProfile.currentSchemaVersion,
@@ -87,5 +98,22 @@ struct PlayerProfile: Codable, Sendable, Equatable {
 
     mutating func recomputeRank() {
         self.rankRung = RankRung.from(xp: totalXP)
+    }
+
+    // MARK: - Daily Question
+
+    /// True if the player has already answered today's Daily Question.
+    func hasAnsweredDailyToday(now: Date = Date(), calendar: Calendar = .current) -> Bool {
+        guard let last = lastDailyAnsweredDate else { return false }
+        return calendar.startOfDay(for: last) == calendar.startOfDay(for: now)
+    }
+
+    /// Record today's Daily answer: remember the pick + that it was answered,
+    /// and count it toward the streak (answering the daily keeps it alive, the
+    /// same as playing a scenario). Idempotent within a day via `recordPlayToday`.
+    mutating func recordDailyAnswer(pick: Int, now: Date = Date(), calendar: Calendar = .current) {
+        lastDailyAnsweredDate = calendar.startOfDay(for: now)
+        lastDailyAnsweredPick = pick
+        recordPlayToday(now: now, calendar: calendar)
     }
 }
