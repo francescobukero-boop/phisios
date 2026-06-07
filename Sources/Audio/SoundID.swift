@@ -36,11 +36,14 @@ enum SoundID: String, Sendable, CaseIterable {
         case .missTone:     return 0.35   // -9 dB
         case .airball:      return 0.25   // -12 dB
 
-        // Archery
-        case .bowRelease:   return 0.55   // punchy release attack
-        case .arrowWhoosh:  return 0.40   // subtle, sits under the release
-        case .targetThud:   return 0.45   // muted miss thud
-        case .bullseyeHit:  return 0.71   // the reward
+        // Archery — the result sound fires EVERY shot, where basketball's loud
+        // sounds (swish/glass) only fire on a make. So the hit/miss are cut to
+        // basketball's *typical* per-shot level, not its peaks. Release matches
+        // basketball's shoot and is left alone.
+        case .bowRelease:   return 0.35   // punchy release attack (no asset yet)
+        case .arrowWhoosh:  return 0.25   // release — matches basketball's shoot
+        case .targetThud:   return 0.16   // miss result — every shot, kept low
+        case .bullseyeHit:  return 0.15   // hit result — every shot, kept low
         }
     }
 

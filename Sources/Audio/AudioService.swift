@@ -13,6 +13,10 @@ final class AudioService {
     private let mixer = AVAudioMixerNode()
     private let log = Logger(subsystem: "com.iftekharanwar.physicsgame", category: "audio")
 
+    /// Master trim on the entire mix — one knob for overall loudness, applied
+    /// on top of the per-sound gains in SoundID. 0.35 ≈ -9 dB.
+    private static let masterVolume: Float = 0.35
+
     // One player per voice; simultaneous plays of the same sound will interrupt each other.
     private var oneShotPlayers: [SoundID: AVAudioPlayerNode] = [:]
     private var oneShotBuffers: [SoundID: AVAudioPCMBuffer] = [:]
@@ -65,6 +69,7 @@ final class AudioService {
 
     private func attachMixer() {
         engine.attach(mixer)
+        mixer.outputVolume = Self.masterVolume
         engine.connect(mixer, to: engine.mainMixerNode, format: nil)
     }
 
