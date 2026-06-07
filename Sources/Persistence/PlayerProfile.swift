@@ -87,6 +87,15 @@ struct PlayerProfile: Codable, Sendable, Equatable {
 
     static let currentSchemaVersion = 5
 
+    // MARK: - Sports IQ awards (XP; 10 XP = 1 IQ)
+
+    /// Answering the Daily Question moves Sports IQ once per day — a correct
+    /// read is worth more, but seeing the why (even when wrong) still counts.
+    static let dailyCorrectXP = 30
+    static let dailyWrongXP = 10
+    /// Reading a lesson in full for the first time. Re-reads award nothing.
+    static let lessonFirstReadXP = 40
+
     /// Record a play happening today. Bumps `currentStreak` if it continues
     /// the streak (last played yesterday); resets to 1 if a day was missed;
     /// no-op if already played today.
@@ -118,10 +127,29 @@ struct PlayerProfile: Codable, Sendable, Equatable {
     /// Record today's Daily answer: remember the pick + that it was answered,
     /// and count it toward the streak (answering the daily keeps it alive, the
     /// same as playing a scenario). Idempotent within a day via `recordPlayToday`.
-    mutating func recordDailyAnswer(pick: Int, questionID: String? = nil, now: Date = Date(), calendar: Calendar = .current) {
+    mutating func recordDailyAnswer(pick: Int, questionID: String? = nil, correct: Bool = false, now: Date = Date(), calendar: Calendar = .current) {
+        let alreadyAnsweredToday = hasAnsweredDailyToday(now: now, calendar: calendar)
         lastDailyAnsweredDate = calendar.startOfDay(for: now)
         lastDailyAnsweredPick = pick
         lastDailyAnsweredQuestionID = questionID
         recordPlayToday(now: now, calendar: calendar)
+        // Sports IQ moves once per day; guarding on the pre-write state keeps it
+        // idempotent if the daily is ever recorded twice in the same day.
+        if !alreadyAnsweredToday {
+            totalXP += correct ? Self.dailyCorrectXP : Self.dailyWrongXP
+            recomputeRank()
+        }
+    }
+
+    /// Mark a lesson read in full. The first read moves Sports IQ; re-reads
+    /// don't. Returns whether this was the first read.
+    @discardableResult
+    mutating func recordLessonRead(_ lessonId: String) -> Bool {
+        let isFirstRead = completedLessons.insert(lessonId).inserted
+        if isFirstRead {
+            totalXP += Self.lessonFirstReadXP
+            recomputeRank()
+        }
+        return isFirstRead
     }
 }

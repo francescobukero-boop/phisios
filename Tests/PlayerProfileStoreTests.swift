@@ -303,3 +303,65 @@ final class DailyQuestionPickerTests: XCTestCase {
         XCTAssertEqual(storeB.profile.lastDailyAnsweredPick, 2)
     }
 }
+
+/// Sports IQ earning model: IQ should grow from *understanding* — answering the
+/// daily, reading a lesson — not from grinding. These lock that in.
+final class SportsIQEarningTests: XCTestCase {
+
+    private let day1 = Date(timeIntervalSince1970: 1_000_000_000)
+
+    func test_dailyAnswer_awardsMoreForCorrectThanWrong() {
+        var a = PlayerProfile.newProfile()
+        a.recordDailyAnswer(pick: 0, questionID: "q", correct: true, now: day1)
+        XCTAssertEqual(a.totalXP, PlayerProfile.dailyCorrectXP)
+
+        var b = PlayerProfile.newProfile()
+        b.recordDailyAnswer(pick: 0, questionID: "q", correct: false, now: day1)
+        XCTAssertEqual(b.totalXP, PlayerProfile.dailyWrongXP)
+
+        XCTAssertGreaterThan(PlayerProfile.dailyCorrectXP, PlayerProfile.dailyWrongXP)
+    }
+
+    func test_dailyAnswer_iqAwardIsOncePerDay() {
+        var p = PlayerProfile.newProfile()
+        p.recordDailyAnswer(pick: 0, questionID: "q", correct: true, now: day1)
+        // Re-recording the same day must NOT award again (idempotent).
+        p.recordDailyAnswer(pick: 0, questionID: "q", correct: true, now: day1)
+        XCTAssertEqual(p.totalXP, PlayerProfile.dailyCorrectXP)
+
+        // A new day awards again.
+        let day2 = day1.addingTimeInterval(86_400)
+        p.recordDailyAnswer(pick: 0, questionID: "q", correct: true, now: day2)
+        XCTAssertEqual(p.totalXP, PlayerProfile.dailyCorrectXP * 2)
+    }
+
+    func test_lessonRead_awardsOnceThenNothingOnReread() {
+        var p = PlayerProfile.newProfile()
+        XCTAssertTrue(p.recordLessonRead("bb-l1-arc"))
+        XCTAssertEqual(p.totalXP, PlayerProfile.lessonFirstReadXP)
+
+        // Re-reading the same lesson awards nothing.
+        XCTAssertFalse(p.recordLessonRead("bb-l1-arc"))
+        XCTAssertEqual(p.totalXP, PlayerProfile.lessonFirstReadXP)
+
+        // A different lesson awards again.
+        XCTAssertTrue(p.recordLessonRead("bb-l2-spin"))
+        XCTAssertEqual(p.totalXP, PlayerProfile.lessonFirstReadXP * 2)
+    }
+
+    func test_dailiesAloneClimbToStudentTier() {
+        var p = PlayerProfile.newProfile()
+        XCTAssertEqual(SportsIQTier.from(iq: SportsIQTier.iq(fromXP: p.totalXP)), .watcher)
+
+        var day = day1
+        for _ in 0..<10 {
+            p.recordDailyAnswer(pick: 0, questionID: "q", correct: true, now: day)
+            day = day.addingTimeInterval(86_400)
+        }
+        // 10 correct dailies = 300 XP = 30 IQ → past STUDENT (25), the daily
+        // habit loop that the redesign is built around.
+        let iq = SportsIQTier.iq(fromXP: p.totalXP)
+        XCTAssertEqual(iq, 30)
+        XCTAssertEqual(SportsIQTier.from(iq: iq), .student)
+    }
+}

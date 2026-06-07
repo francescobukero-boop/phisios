@@ -87,7 +87,7 @@ struct ProfileView: View {
             }
             .padding(.top, Spacing.xxs)
 
-            Text("Your read on the game. It climbs every time you call a shot — right or wrong — and see why it flew.")
+            Text("Your read on the game. It climbs when you call a shot, answer the daily, or finish a lesson — and right or wrong, seeing why is what counts.")
                 .font(.barlowCondensed(size: 15, italic: true))
                 .foregroundColor(.arclabMidGrey)
                 .lineSpacing(2)

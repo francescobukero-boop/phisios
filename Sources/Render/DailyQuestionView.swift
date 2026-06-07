@@ -247,7 +247,7 @@ struct DailyQuestionView: View {
         guard !revealed else { return }
         pick = idx
         answerHaptic += 1
-        profile.mutate { $0.recordDailyAnswer(pick: idx, questionID: q.id) }
+        profile.mutate { $0.recordDailyAnswer(pick: idx, questionID: q.id, correct: q.isDisplayPickCorrect(idx)) }
         withAnimation(.easeOut(duration: 0.3)) { revealed = true }
     }
 

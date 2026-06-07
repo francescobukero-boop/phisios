@@ -111,7 +111,7 @@ struct ChapterView: View {
             chapterIndex: chapter.index,
             onClose: { finished in
                 if finished {
-                    profile.mutate { $0.completedLessons.insert(chapter.lesson.id) }
+                    profile.mutate { $0.recordLessonRead(chapter.lesson.id) }
                 }
                 lessonExpanded = false
             }
