@@ -68,6 +68,11 @@ struct PlayerProfile: Codable, Sendable, Equatable {
     /// profiles decode it as nil with no migration.
     var lastDailyAnsweredQuestionID: String? = nil
 
+    /// The Sports IQ value last shown on the Profile screen, so the next visit
+    /// can count up from it and surface the gain. Additive optional; old
+    /// profiles decode it as nil with no migration.
+    var lastSeenIQ: Int? = nil
+
     static func newProfile() -> PlayerProfile {
         PlayerProfile(
             profileSchemaVersion: PlayerProfile.currentSchemaVersion,

@@ -16,6 +16,12 @@ struct ProfileView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(PlayerProfileStore.self) private var profile
 
+    /// Sports IQ count-up: animates from the value last seen on this screen to
+    /// the current one on open, so the player watches what they gained.
+    @State private var displayedIQ: Int = 0
+    @State private var iqDelta: Int = 0
+    @State private var countStarted = false
+
     var body: some View {
         AdaptiveContentContainer(maxWidth: 640) {
             VStack(spacing: 0) {
@@ -55,18 +61,27 @@ struct ProfileView: View {
         let next = tier.next
 
         return VStack(alignment: .leading, spacing: Spacing.sm) {
-            Text("SPORTS IQ")
-                .font(.sfMono(size: 11))
-                .foregroundColor(.arclabMidGrey)
-                .tracking(2.0)
+            HStack(spacing: Spacing.xs) {
+                Text("SPORTS IQ")
+                    .font(.sfMono(size: 11))
+                    .foregroundColor(.arclabMidGrey)
+                    .tracking(2.0)
+                if iqDelta > 0 {
+                    Text("+\(iqDelta)")
+                        .font(.sfMono(size: 11, weight: .medium))
+                        .foregroundColor(.arclabRimOrange)
+                        .tracking(1.0)
+                }
+            }
 
             // The number is the hero; the tier sits under it as a badge so a
             // long tier name ("STUDENT OF THE GAME") never fights the figure.
-            Text("\(iq)")
+            Text("\(displayedIQ)")
                 .font(.anton(size: 72))
                 .foregroundColor(.arclabWhite)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
+                .contentTransition(.numericText())
 
             Text(tier.rawValue)
                 .font(.sfMono(size: 14, weight: .medium))
@@ -77,7 +92,7 @@ struct ProfileView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(alignment: .leading, spacing: Spacing.xs) {
-                progressBar(fraction: tierFraction(iq: iq, tier: tier, next: next))
+                progressBar(fraction: tierFraction(iq: displayedIQ, tier: tier, next: next))
                 Text(tierCaption(iq: iq, next: next))
                     .font(.sfMono(size: 11))
                     .foregroundColor(.arclabMidGrey)
@@ -95,6 +110,23 @@ struct ProfileView: View {
                 .padding(.top, Spacing.xxs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .onAppear { runCountUp() }
+    }
+
+    /// Count the IQ hero up from the value last seen on this screen, so the
+    /// player watches what they gained. Runs once per presentation.
+    private func runCountUp() {
+        guard !countStarted else { return }
+        countStarted = true
+        let current = SportsIQTier.iq(fromXP: profile.profile.totalXP)
+        let start = profile.profile.lastSeenIQ ?? current
+        displayedIQ = start
+        profile.mutate { $0.lastSeenIQ = current }
+        guard current != start else { displayedIQ = current; return }
+        withAnimation(.easeOut(duration: 0.9)) {
+            displayedIQ = current
+            iqDelta = max(0, current - start)
+        }
     }
 
     /// Progress through the current tier toward the next one, 0…1. Full bar

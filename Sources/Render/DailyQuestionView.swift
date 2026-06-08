@@ -22,6 +22,10 @@ struct DailyQuestionView: View {
     @State private var revealed: Bool = false
     @State private var pick: Int? = nil
     @State private var answerHaptic: Int = 0
+    /// IQ earned on this answer (nil until answered; stays nil on a re-open, so
+    /// the reward only ever shows once).
+    @State private var iqGain: Int? = nil
+    @State private var showGain: Bool = false
 
     init(onClose: (() -> Void)? = nil, question: DailyQuestion? = DailyQuestionPicker.todays()) {
         self.onClose = onClose
@@ -169,10 +173,21 @@ struct DailyQuestionView: View {
         return VStack(alignment: .leading, spacing: 0) {
             Spacer().frame(height: Spacing.lg)
 
-            Text(correct ? "RIGHT." : "NOT QUITE.")
-                .font(.anton(size: 40))
-                .foregroundColor(.arclabWhite)
-                .minimumScaleFactor(0.7)
+            HStack(alignment: .firstTextBaseline) {
+                Text(correct ? "RIGHT." : "NOT QUITE.")
+                    .font(.anton(size: 40))
+                    .foregroundColor(.arclabWhite)
+                    .minimumScaleFactor(0.7)
+                Spacer(minLength: Spacing.sm)
+                if let iqGain {
+                    Text("+\(iqGain) IQ")
+                        .font(.sfMono(size: 14, weight: .medium))
+                        .foregroundColor(.arclabRimOrange)
+                        .tracking(1.0)
+                        .opacity(showGain ? 1 : 0)
+                        .offset(y: showGain ? 0 : 12)
+                }
+            }
 
             Text(q.why)
                 .font(.barlowCondensed(size: 17))
@@ -245,10 +260,17 @@ struct DailyQuestionView: View {
 
     private func choose(_ q: DailyQuestion, _ idx: Int) {
         guard !revealed else { return }
+        let correct = q.isDisplayPickCorrect(idx)
         pick = idx
+        iqGain = SportsIQTier.iq(fromXP: correct ? PlayerProfile.dailyCorrectXP : PlayerProfile.dailyWrongXP)
         answerHaptic += 1
-        profile.mutate { $0.recordDailyAnswer(pick: idx, questionID: q.id, correct: q.isDisplayPickCorrect(idx)) }
+        profile.mutate { $0.recordDailyAnswer(pick: idx, questionID: q.id, correct: correct) }
         withAnimation(.easeOut(duration: 0.3)) { revealed = true }
+        // Pop the IQ gain in just after the answer reveals.
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            withAnimation(.easeOut(duration: 0.4)) { showGain = true }
+        }
     }
 
     /// If the player already answered today, open straight into the revealed
